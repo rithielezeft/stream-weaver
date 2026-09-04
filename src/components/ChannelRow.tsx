@@ -53,7 +53,7 @@ const Card = memo(function Card({ channel, onPlay }: { channel: Channel; onPlay:
       </div>
     </button>
   );
-}
+});
 
 interface ChannelRowProps {
   title: string;
