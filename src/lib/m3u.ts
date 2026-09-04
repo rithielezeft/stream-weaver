@@ -16,7 +16,7 @@ export interface Channel {
  */
 export function parseM3U(content: string): Channel[] {
   const normalized = content.replace(/^\uFEFF/, "");
-  const lines = content
+  const lines = normalized
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);

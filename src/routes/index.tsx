@@ -5,7 +5,6 @@ import { Hero } from "@/components/Hero";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ChannelRow } from "@/components/ChannelRow";
 import { PlayerOverlay } from "@/components/PlayerOverlay";
-import { demoChannels } from "@/lib/demo-playlist";
 import { groupByCategory, type Channel } from "@/lib/m3u";
 
 export const Route = createFileRoute("/")({
@@ -31,7 +30,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const [channels, setChannels] = useState<Channel[]>(demoChannels);
+  const [channels, setChannels] = useState<Channel[]>([]);
   const [search, setSearch] = useState("");
   const [current, setCurrent] = useState<Channel | null>(null);
   const [myList, setMyList] = useState<Set<string>>(new Set());
@@ -45,7 +44,7 @@ function Index() {
   }, [channels, search]);
 
   const groups = useMemo(() => groupByCategory(filtered), [filtered]);
-  const featured = filtered[0] ?? channels[0]!;
+  const featured = filtered[0] ?? channels[0] ?? null;
 
   const toggleList = (id: string) =>
     setMyList((prev) => {
@@ -77,12 +76,20 @@ function Index() {
 
       <main className="relative z-10 mx-auto max-w-[1600px] px-6 pb-24">
         <section className="grid gap-6 pt-6 lg:grid-cols-3">
-          <Hero
-            channel={featured}
-            onPlay={setCurrent}
-            inList={myList.has(featured.id)}
-            onToggleList={toggleList}
-          />
+          {featured ? (
+            <Hero
+              channel={featured}
+              onPlay={setCurrent}
+              inList={myList.has(featured.id)}
+              onToggleList={toggleList}
+            />
+          ) : (
+            <div className="relative flex min-h-[420px] flex-col justify-end overflow-hidden rounded-3xl border border-white/10 bg-panel/60 p-8 lg:col-span-2">
+              <p className="font-mono text-xs uppercase text-aurora-2">Catálogo vazio</p>
+              <h1 className="mt-3 max-w-xl text-4xl font-black leading-tight text-foreground lg:text-6xl">Carregue sua lista M3U</h1>
+              <p className="mt-3 max-w-lg text-sm text-slate-300">Os canais reais da sua lista aparecerão aqui, organizados por categoria.</p>
+            </div>
+          )}
           <div id="import-panel">
             <ImportPanel
               onImport={setChannels}
@@ -93,7 +100,7 @@ function Index() {
         </section>
 
         <section className="mt-12 space-y-10 animate-rise [animation-delay:200ms]">
-          {groups.length === 0 && (
+          {channels.length > 0 && groups.length === 0 && (
             <p className="py-16 text-center text-sm text-slate-400">
               Nenhum canal encontrado para “{search}”.
             </p>
