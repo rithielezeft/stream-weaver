@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-const MAX_PLAYLIST_BYTES = 150 * 1024 * 1024;
-const PLAYLIST_TIMEOUT_MS = 20_000;
+const MAX_PLAYLIST_BYTES = 550 * 1024 * 1024;
+const PLAYLIST_TIMEOUT_MS = 120_000;
 
 function isPrivateHostname(hostname: string) {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");

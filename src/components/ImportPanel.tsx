@@ -16,7 +16,8 @@ interface ImportPanelProps {
 const SAMPLE = `#EXTM3U
 #EXTINF:-1 tvg-logo="https://exemplo.com/logo.png" group-title="Filmes",Canal 042
 https://cdn.exemplo.com/canal042/index.m3u8`;
-const MAX_FILE_BYTES = 150 * 1024 * 1024;
+const MAX_FILE_BYTES = 550 * 1024 * 1024;
+const LIMIT_LABEL = "550 MB";
 
 export function ImportPanel({ onImport, totalChannels, totalCategories }: ImportPanelProps) {
   const [mode, setMode] = useState<Mode>("url");
@@ -25,8 +26,47 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const fetchPlaylist = useServerFn(downloadM3U);
+
+  const stopSimulatedProgress = () => {
+    if (progressTimer.current) {
+      clearInterval(progressTimer.current);
+      progressTimer.current = null;
+    }
+  };
+
+  // Avanço estimado para o download via URL (o servidor não informa porcentagem real).
+  const startSimulatedProgress = () => {
+    setProgress(0);
+    stopSimulatedProgress();
+    progressTimer.current = setInterval(() => {
+      setProgress((p) => {
+        const current = p ?? 0;
+        if (current >= 95) return current;
+        return current + Math.max(0.4, (95 - current) * 0.03);
+      });
+    }, 200);
+  };
+
+  // Leitura real do arquivo com porcentagem de verdade.
+  const readFileWithProgress = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onprogress = (event) => {
+        if (event.lengthComputable) {
+          setProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
+        }
+      };
+      reader.onload = () => {
+        setProgress(100);
+        resolve(String(reader.result ?? ""));
+      };
+      reader.onerror = () => reject(new Error("erro ao ler o arquivo"));
+      reader.readAsText(file);
+    });
 
   const finish = (channels: Channel[], source: string) => {
     if (channels.length === 0) {
@@ -43,6 +83,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
     setError(null);
     setSuccess(null);
     setLoading(true);
+    setProgress(null);
     try {
       if (mode === "url") {
       const url = value.trim();
@@ -50,7 +91,9 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
         setError("Cole a URL da lista M3U/M3U8.");
         return;
       }
+        startSimulatedProgress();
         const result = await fetchPlaylist({ data: { url } });
+        setProgress(100);
         finish(parseM3U(result.text), new URL(result.sourceUrl).hostname);
       } else if (mode === "file") {
         if (!selectedFile) {
@@ -58,10 +101,10 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
           return;
         }
         if (selectedFile.size > MAX_FILE_BYTES) {
-          setError("O arquivo excede o limite de 150 MB.");
+          setError(`O arquivo excede o limite de ${LIMIT_LABEL}.`);
           return;
         }
-        const content = await selectedFile.text();
+        const content = await readFileWithProgress(selectedFile);
         finish(parseM3U(content), selectedFile.name);
       } else {
         if (!value.trim()) {
@@ -73,11 +116,12 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "";
       setError(
-        message.includes("150 MB") || message.includes("rede local") || message.includes("erro ")
+        message.includes("550 MB") || message.includes("rede local") || message.includes("erro ")
           ? message
           : "Não foi possível acessar essa URL. Confirme o endereço e se o servidor da lista está online.",
       );
     } finally {
+      stopSimulatedProgress();
       setLoading(false);
     }
   };
@@ -88,7 +132,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
     setSuccess(null);
     if (file.size > MAX_FILE_BYTES) {
       setSelectedFile(null);
-      setError("O arquivo excede o limite de 150 MB.");
+      setError(`O arquivo excede o limite de ${LIMIT_LABEL}.`);
       return;
     }
     if (!/\.(m3u8?|txt)$/i.test(file.name)) {
@@ -145,7 +189,9 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
             {selectedFile?.name ?? "Selecionar arquivo .m3u / .m3u8"}
           </span>
           <span className="font-mono text-[10px] text-slate-500">
-            {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB · pronto para importar` : "arraste ou clique · máximo 150 MB"}
+            {selectedFile
+              ? `${selectedFile.size > 1024 * 1024 ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` : `${(selectedFile.size / 1024).toFixed(1)} KB`} · pronto para importar`
+              : `arraste ou clique · máximo ${LIMIT_LABEL}`}
           </span>
         </Button>
       ) : (
@@ -178,8 +224,29 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
         className="mt-3 h-auto rounded-xl bg-live/90 py-3 text-sm font-bold text-ink transition-transform hover:-translate-y-0.5 hover:bg-live disabled:opacity-60"
       >
         {loading && <Loader2 className="size-4 animate-spin" />}
-        {loading ? (mode === "url" ? "Baixando e lendo…" : "Lendo arquivo…") : "Importar canais"}
+        {loading
+          ? progress !== null
+            ? `${mode === "url" ? "Baixando" : "Lendo"}… ${Math.round(progress)}%`
+            : mode === "url"
+              ? "Baixando e lendo…"
+              : "Lendo arquivo…"
+          : "Importar canais"}
       </Button>
+
+      {loading && (
+        <div role="status" className="mt-3">
+          <div className="h-2 overflow-hidden rounded-full bg-ink/80">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-aurora-1 via-aurora-2 to-live transition-[width] duration-200"
+              style={{ width: `${Math.round(progress ?? 8)}%` }}
+            />
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+            {progress !== null ? `${Math.round(progress)}% concluído. ` : ""}
+            Listas grandes podem demorar na primeira vez — não feche esta página.
+          </p>
+        </div>
+      )}
 
       <div className="mt-5 grid grid-cols-3 gap-3 border-t border-white/5 pt-5 text-center">
         <div>
