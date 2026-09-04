@@ -25,8 +25,19 @@ export type StreamErrorReason =
 
 type Cleanup = () => void;
 
+interface MpegtsPlayer {
+  attachMediaElement(el: HTMLMediaElement): void;
+  detachMediaElement(): void;
+  load(): void;
+  unload(): void;
+  play(): Promise<void> | void;
+  pause(): void;
+  destroy(): void;
+  on(event: string, listener: (...args: unknown[]) => void): void;
+}
+
 function detectKind(url: string): "hls" | "ts" | "native" {
-  const clean = url.split(/[?#]/)[0].toLowerCase();
+  const clean = (url.split(/[?#]/)[0] ?? "").toLowerCase();
   if (clean.endsWith(".m3u8") || clean.endsWith(".m3u")) return "hls";
   if (clean.endsWith(".ts") || clean.endsWith(".mts") || clean.endsWith(".m2ts")) return "ts";
   return "native";
@@ -57,7 +68,7 @@ export function attachStream(
   video.addEventListener("error", onVideoError);
 
   let hls: import("hls.js").default | null = null;
-  let mpegts: import("mpegts.js").Player | null = null;
+  let tsPlayer: MpegtsPlayer | null = null;
 
   const attachNative = () => {
     video.src = url;
