@@ -141,7 +141,6 @@ export function attachStream(
       return;
     }
 
-    mpegts = null; // garante limpeza anterior
     const player = mpegts.createPlayer(
       {
         type: "mpegts",
@@ -154,13 +153,14 @@ export function attachStream(
         liveBufferLatencyChasing: true,
         autoCleanupSourceBuffer: true,
       },
-    );
-    mpegts = player;
+    ) as unknown as MpegtsPlayer;
+    tsPlayer = player;
     player.attachMediaElement(video);
     player.load();
-    player.play().catch(() => cb.onError("fatal"));
+    Promise.resolve(player.play()).catch(() => cb.onError("fatal"));
     player.on(mpegts.Events.ERROR, () => cb.onError("network"));
   };
+
 
   if (kind === "hls") void attachHls();
   else if (kind === "ts") void attachTs();
@@ -171,12 +171,12 @@ export function attachStream(
     video.removeEventListener("playing", onPlaying);
     video.removeEventListener("error", onVideoError);
     hls?.destroy();
-    if (mpegts) {
+    if (tsPlayer) {
       try {
-        mpegts.pause();
-        mpegts.unload();
-        mpegts.detachMediaElement();
-        mpegts.destroy();
+        tsPlayer.pause();
+        tsPlayer.unload();
+        tsPlayer.detachMediaElement();
+        tsPlayer.destroy();
       } catch {
         /* noop */
       }
