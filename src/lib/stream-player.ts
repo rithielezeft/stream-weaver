@@ -20,7 +20,7 @@ export type StreamErrorReason =
   | "network" // falha de rede / CORS / TLS
   | "media" // codec ou container não suportado
   | "unsupported"
-  | "mixed-content"; // http:// em página https://
+  | "mixed-content" // http:// em página https://
   | "fatal";
 
 type Cleanup = () => void;
