@@ -16,7 +16,7 @@ interface ImportPanelProps {
 const SAMPLE = `#EXTM3U
 #EXTINF:-1 tvg-logo="https://exemplo.com/logo.png" group-title="Filmes",Canal 042
 https://cdn.exemplo.com/canal042/index.m3u8`;
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const MAX_FILE_BYTES = 150 * 1024 * 1024;
 
 export function ImportPanel({ onImport, totalChannels, totalCategories }: ImportPanelProps) {
   const [mode, setMode] = useState<Mode>("url");
@@ -58,7 +58,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
           return;
         }
         if (selectedFile.size > MAX_FILE_BYTES) {
-          setError("O arquivo excede o limite de 20 MB.");
+          setError("O arquivo excede o limite de 150 MB.");
           return;
         }
         const content = await selectedFile.text();
@@ -73,7 +73,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "";
       setError(
-        message.includes("20 MB") || message.includes("rede local") || message.includes("erro ")
+        message.includes("150 MB") || message.includes("rede local") || message.includes("erro ")
           ? message
           : "Não foi possível acessar essa URL. Confirme o endereço e se o servidor da lista está online.",
       );
@@ -88,7 +88,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
     setSuccess(null);
     if (file.size > MAX_FILE_BYTES) {
       setSelectedFile(null);
-      setError("O arquivo excede o limite de 20 MB.");
+      setError("O arquivo excede o limite de 150 MB.");
       return;
     }
     if (!/\.(m3u8?|txt)$/i.test(file.name)) {
@@ -145,7 +145,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
             {selectedFile?.name ?? "Selecionar arquivo .m3u / .m3u8"}
           </span>
           <span className="font-mono text-[10px] text-slate-500">
-            {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB · pronto para importar` : "arraste ou clique · máximo 20 MB"}
+            {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB · pronto para importar` : "arraste ou clique · máximo 150 MB"}
           </span>
         </Button>
       ) : (
