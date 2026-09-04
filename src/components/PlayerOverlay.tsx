@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize, X, Loader2 } from "lucide-react";
 import type { Channel } from "@/lib/m3u";
+import { attachStream, STREAM_ERROR_MESSAGES } from "@/lib/stream-player";
 
 interface PlayerOverlayProps {
   channel: Channel;
@@ -20,51 +21,18 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    let hls: import("hls.js").default | null = null;
-    let cancelled = false;
     setLoading(true);
     setError(null);
     setPlaying(true);
 
-    const onReady = () => !cancelled && setLoading(false);
-    const onErr = () => {
-      if (!cancelled) {
-        setError("Não foi possível reproduzir este stream.");
+    const detach = attachStream(video, channel.url, {
+      onReady: () => setLoading(false),
+      onError: (reason) => {
+        setError(STREAM_ERROR_MESSAGES[reason]);
         setLoading(false);
-      }
-    };
-
-    (async () => {
-      const Hls = (await import("hls.js")).default;
-      if (cancelled) return;
-      if (video.canPlayType("application/vnd.apple.mpegurl") && !Hls.isSupported()) {
-        video.src = channel.url;
-      } else if (Hls.isSupported()) {
-        hls = new Hls({ enableWorker: true });
-        hls.loadSource(channel.url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(() => {});
-        });
-        hls.on(Hls.Events.ERROR, (_e, data) => {
-          if (data.fatal) onErr();
-        });
-      } else {
-        video.src = channel.url;
-      }
-      video.play().catch(() => {});
-    })();
-
-    video.addEventListener("playing", onReady);
-    video.addEventListener("error", onErr);
-    return () => {
-      cancelled = true;
-      video.removeEventListener("playing", onReady);
-      video.removeEventListener("error", onErr);
-      hls?.destroy();
-      video.pause();
-      video.removeAttribute("src");
-    };
+      },
+    });
+    return detach;
   }, [channel]);
 
   useEffect(() => {
