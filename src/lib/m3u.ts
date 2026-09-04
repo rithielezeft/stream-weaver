@@ -42,9 +42,9 @@ export function parseM3U(content: string): Channel[] {
         id: `${channels.length}-${pending.name}`,
         name: pending.name!,
         url: line,
-        logo: pending.logo,
         group: pending.group || "Outros",
-        tvgId: pending.tvgId,
+        ...(pending.logo ? { logo: pending.logo } : {}),
+        ...(pending.tvgId ? { tvgId: pending.tvgId } : {}),
       });
       pending = null;
     }
