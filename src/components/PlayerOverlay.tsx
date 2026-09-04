@@ -2,7 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize, X, Loader2 } from "lucide-react";
 import type { Channel } from "@/lib/m3u";
 import { attachStream, STREAM_ERROR_MESSAGES } from "@/lib/stream-player";
-...
+
+interface PlayerOverlayProps {
+  channel: Channel;
+  upNext: Channel[];
+  onPlay: (c: Channel) => void;
+  onClose: () => void;
+}
+
+export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverlayProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
