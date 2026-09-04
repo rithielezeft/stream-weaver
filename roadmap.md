@@ -6,4 +6,4 @@
   - [x] HLS com config tolerante (H.264/AAC, VP8/VP9 quando o navegador suportar via MSE)
   - [x] Fallbacks e retentativas em erros de rede fatais
   - [x] Aviso honesto sobre TLS autoassinado (navegador bloqueia; JS não contorna)
-- [ ] Bug: importação de lista (arquivo/texto/URL) travando — testar fluxos de ponta a ponta
+- [x] Bug: importação de lista (arquivo/texto/URL) travando — era build quebrado; testado e funcionando
