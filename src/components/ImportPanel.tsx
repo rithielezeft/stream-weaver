@@ -16,7 +16,8 @@ interface ImportPanelProps {
 const SAMPLE = `#EXTM3U
 #EXTINF:-1 tvg-logo="https://exemplo.com/logo.png" group-title="Filmes",Canal 042
 https://cdn.exemplo.com/canal042/index.m3u8`;
-const MAX_FILE_BYTES = 150 * 1024 * 1024;
+const MAX_FILE_BYTES = 550 * 1024 * 1024;
+const LIMIT_LABEL = "550 MB";
 
 export function ImportPanel({ onImport, totalChannels, totalCategories }: ImportPanelProps) {
   const [mode, setMode] = useState<Mode>("url");
@@ -25,8 +26,47 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const fetchPlaylist = useServerFn(downloadM3U);
+
+  const stopSimulatedProgress = () => {
+    if (progressTimer.current) {
+      clearInterval(progressTimer.current);
+      progressTimer.current = null;
+    }
+  };
+
+  // Avanço estimado para o download via URL (o servidor não informa porcentagem real).
+  const startSimulatedProgress = () => {
+    setProgress(0);
+    stopSimulatedProgress();
+    progressTimer.current = setInterval(() => {
+      setProgress((p) => {
+        const current = p ?? 0;
+        if (current >= 95) return current;
+        return current + Math.max(0.4, (95 - current) * 0.03);
+      });
+    }, 200);
+  };
+
+  // Leitura real do arquivo com porcentagem de verdade.
+  const readFileWithProgress = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onprogress = (event) => {
+        if (event.lengthComputable) {
+          setProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
+        }
+      };
+      reader.onload = () => {
+        setProgress(100);
+        resolve(String(reader.result ?? ""));
+      };
+      reader.onerror = () => reject(new Error("erro ao ler o arquivo"));
+      reader.readAsText(file);
+    });
 
   const finish = (channels: Channel[], source: string) => {
     if (channels.length === 0) {
