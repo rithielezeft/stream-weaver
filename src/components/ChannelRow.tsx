@@ -1,5 +1,9 @@
+import { useState } from "react";
 import { Play } from "lucide-react";
 import type { Channel } from "@/lib/m3u";
+
+/** Quantas capas renderizar por vez — evita milhares de elementos na memória. */
+const PAGE_SIZE = 24;
 
 const GLOW: Record<string, string> = {
   Filmes: "hover:ring-aurora-2/60 hover:glow-aurora-2",
