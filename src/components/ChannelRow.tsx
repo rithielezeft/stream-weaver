@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Play } from "lucide-react";
 import type { Channel } from "@/lib/m3u";
 
@@ -12,7 +12,7 @@ const GLOW: Record<string, string> = {
   Infantil: "hover:ring-aurora-1/60 hover:glow-aurora-1",
 };
 
-function Card({ channel, onPlay }: { channel: Channel; onPlay: (c: Channel) => void }) {
+const Card = memo(function Card({ channel, onPlay }: { channel: Channel; onPlay: (c: Channel) => void }) {
   const glow = GLOW[channel.group] ?? "hover:ring-aurora-2/60 hover:glow-aurora-2";
   return (
     <button
