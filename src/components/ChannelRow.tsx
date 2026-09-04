@@ -62,7 +62,10 @@ interface ChannelRowProps {
 }
 
 export function ChannelRow({ title, channels, onPlay }: ChannelRowProps) {
+  const [visible, setVisible] = useState(PAGE_SIZE);
   if (channels.length === 0) return null;
+  const shown = channels.slice(0, visible);
+  const remaining = channels.length - shown.length;
   return (
     <div id={`cat-${title}`}>
       <div className="mb-3 flex items-end justify-between">
@@ -72,9 +75,22 @@ export function ChannelRow({ title, channels, onPlay }: ChannelRowProps) {
         </span>
       </div>
       <div className="-mx-2 flex gap-4 overflow-x-auto px-2 pb-2 scrollbar-none">
-        {channels.map((ch) => (
+        {shown.map((ch) => (
           <Card key={ch.id} channel={ch} onPlay={onPlay} />
         ))}
+        {remaining > 0 && (
+          <button
+            onClick={() => setVisible((v) => v + PAGE_SIZE * 5)}
+            className="grid w-[120px] shrink-0 place-items-center rounded-2xl bg-panel/60 text-center ring-1 ring-white/10 transition-colors hover:bg-panel hover:ring-aurora-2/50"
+          >
+            <span className="px-3 text-xs font-bold text-aurora-2">
+              Mostrar mais
+              <span className="mt-1 block font-mono text-[10px] font-normal text-slate-400">
+                +{remaining.toLocaleString("pt-BR")} canais
+              </span>
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );
