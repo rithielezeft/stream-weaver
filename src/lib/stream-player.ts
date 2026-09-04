@@ -106,18 +106,12 @@ export function attachStream(
   const onPlaying = () => {
     if (!destroyed) cb.onReady();
   };
-  const onVideoError = () => {
-    // Só interessa quando a reprodução nativa está ativa; os outros motores
-    // reportam seus próprios erros.
-    // (checado abaixo via flag `nativeActive`)
-  };
   let nativeActive = false;
   const onNativeError = () => {
     if (nativeActive && !destroyed) cb.onError("fatal");
   };
   video.addEventListener("playing", onPlaying);
   video.addEventListener("error", onNativeError);
-  video.addEventListener("error", onVideoError);
 
   const play = () => {
     video.play().catch(() => {});
@@ -182,14 +176,18 @@ export function attachStream(
     Promise.resolve(player.play()).catch(() => {});
 
     let errored = false;
-    player.on(mpegts.Events.ERROR, () => {
+    player.on(mpegts.Events.ERROR, (...args: unknown[]) => {
       if (destroyed || errored) return;
       errored = true;
+      const errorType = (args[0] as { type?: unknown } | undefined)?.type;
+      const isMedia =
+        errorType === mpegts.ErrorTypes.MEDIA_ERROR ||
+        (typeof errorType === "string" && errorType === "MEDIA_ERROR");
       // MPEG-TS falhou. Em URLs sem extensão ainda vale tentar a reprodução
       // nativa (pode ser um MP4 servido sem extensão); nos outros casos, erro.
       teardownCurrentPlayer();
-      if (kind === "unknown") attachNative();
-      else cb.onError("network");
+      if (kind === "unknown" && !isMedia) attachNative();
+      else cb.onError(isMedia ? "media" : "network");
     });
   };
 
@@ -268,9 +266,24 @@ export function attachStream(
     });
   };
 
-  if (kind === "hls" || kind === "unknown") void attachHls();
-  else if (kind === "ts") void attachTs();
-  else attachNative();
+  const start = async () => {
+    if (kind === "hls") {
+      await attachHls();
+    } else if (kind === "ts") {
+      await attachTs();
+    } else if (kind === "native") {
+      attachNative();
+    } else {
+      // Sem extensão: identifica o tipo real antes de escolher o motor —
+      // adivinhar errado travava (stream TS ao vivo lido como manifesto HLS).
+      const probed = await probeStreamKind(streamUrl);
+      if (destroyed) return;
+      if (probed === "hls") await attachHls();
+      else if (probed === "ts") await attachTs();
+      else attachNative();
+    }
+  };
+  void start();
 
   return () => {
     destroyed = true;
