@@ -6,9 +6,10 @@
  * - MPEG-TS progressivo (.ts): mpegts.js — H.264/H.265 + AAC/MP3
  * - MP4/WebM/OGG: reprodução nativa — inclui VP8/VP9 em WebM
  *
- * Limitação: o navegador bloqueia certificados TLS autoassinados e conteúdo
- * HTTP misto em páginas HTTPS. Isso é uma política de segurança do navegador
- * e não pode ser contornada via JavaScript.
+ * Tudo passa pelo relay `/api/public/stream-proxy` (mesmo domínio), o que
+ * elimina bloqueios de conteúdo misto (HTTP em página HTTPS) e de CORS —
+ * política de segurança do navegador que JavaScript não contorna sozinho.
+ * URLs sem extensão passam por uma tentativa automática: HLS → MPEG-TS → nativo.
  */
 
 export interface StreamCallbacks {
@@ -17,10 +18,10 @@ export interface StreamCallbacks {
 }
 
 export type StreamErrorReason =
-  | "network" // falha de rede / CORS / TLS
+  | "network" // falha de rede / servidor indisponível
   | "media" // codec ou container não suportado
   | "unsupported"
-  | "mixed-content" // http:// em página https://
+  | "mixed-content" // http:// em página https:// (só ocorre sem relay)
   | "fatal";
 
 type Cleanup = () => void;
@@ -36,11 +37,51 @@ interface MpegtsPlayer {
   on(event: string, listener: (...args: unknown[]) => void): void;
 }
 
-function detectKind(url: string): "hls" | "ts" | "native" {
+function detectKind(url: string): "hls" | "ts" | "native" | "unknown" {
   const clean = (url.split(/[?#]/)[0] ?? "").toLowerCase();
   if (clean.endsWith(".m3u8") || clean.endsWith(".m3u")) return "hls";
   if (clean.endsWith(".ts") || clean.endsWith(".mts") || clean.endsWith(".m2ts")) return "ts";
-  return "native";
+  if (/\.(mp4|m4v|webm|ogv|ogg|mov)$/.test(clean)) return "native";
+  return "unknown";
+}
+
+export function proxyStreamUrl(url: string): string {
+  return `/api/public/stream-proxy?url=${encodeURIComponent(url)}`;
+}
+
+/**
+ * Descobre o tipo real do stream quando a URL não tem extensão: lê o
+ * content-type e os primeiros bytes pela resposta do relay. Sem isso,
+ * um MPEG-TS ao vivo (infinito) seria lido como "manifesto" HLS e travaria.
+ */
+async function probeStreamKind(streamUrl: string): Promise<"hls" | "ts" | "native"> {
+  try {
+    const res = await fetch(streamUrl, { headers: { Range: "bytes=0-1" } });
+    const ct = (res.headers.get("content-type") ?? "").toLowerCase();
+    if (/mpegurl|m3u/.test(ct)) {
+      void res.body?.cancel().catch(() => {});
+      return "hls";
+    }
+    if (/mp2t|mpegts/.test(ct)) {
+      void res.body?.cancel().catch(() => {});
+      return "ts";
+    }
+    const reader = res.body?.getReader();
+    if (reader) {
+      const first = await reader.read();
+      void reader.cancel().catch(() => {});
+      const bytes = first.done ? null : first.value;
+      if (bytes) {
+        const head = new TextDecoder().decode(bytes.subarray(0, 7)).trimStart();
+        if (head.startsWith("#EXTM3U")) return "hls";
+        // Sync byte do MPEG-TS: 0x47 no início e a cada 188 bytes.
+        if (bytes[0] === 0x47 && (bytes.length < 189 || bytes[188] === 0x47)) return "ts";
+      }
+    }
+    return "native";
+  } catch {
+    return "ts";
+  }
 }
 
 export function attachStream(
@@ -48,31 +89,108 @@ export function attachStream(
   url: string,
   cb: StreamCallbacks,
 ): Cleanup {
-  // Página HTTPS não consegue carregar stream HTTP: o navegador bloqueia antes
-  // de qualquer biblioteca rodar.
-  if (
-    typeof window !== "undefined" &&
-    window.location.protocol === "https:" &&
-    url.startsWith("http://")
-  ) {
-    cb.onError("mixed-content");
-    return () => {};
-  }
-
   const kind = detectKind(url);
+  const pageHttps =
+    typeof window !== "undefined" && window.location.protocol === "https:";
+
+  // Mídia nativa direta quando não há risco de conteúdo misto; todo o resto
+  // (HLS, MPEG-TS, URL sem extensão) vai pelo relay do mesmo domínio.
+  const nativeDirect = kind === "native" && !(pageHttps && url.startsWith("http://"));
+  const streamUrl = nativeDirect ? url : proxyStreamUrl(url);
+
   let destroyed = false;
-
-  const onPlaying = () => cb.onReady();
-  const onVideoError = () => cb.onError("fatal");
-  video.addEventListener("playing", onPlaying);
-  video.addEventListener("error", onVideoError);
-
+  let hlsRetries = 0;
   let hls: import("hls.js").default | null = null;
   let tsPlayer: MpegtsPlayer | null = null;
 
+  const onPlaying = () => {
+    if (!destroyed) cb.onReady();
+  };
+  const onVideoError = () => {
+    // Só interessa quando a reprodução nativa está ativa; os outros motores
+    // reportam seus próprios erros.
+    // (checado abaixo via flag `nativeActive`)
+  };
+  let nativeActive = false;
+  const onNativeError = () => {
+    if (nativeActive && !destroyed) cb.onError("fatal");
+  };
+  video.addEventListener("playing", onPlaying);
+  video.addEventListener("error", onNativeError);
+  video.addEventListener("error", onVideoError);
+
+  const play = () => {
+    video.play().catch(() => {});
+  };
+
+  const teardownCurrentPlayer = () => {
+    if (hls) {
+      try {
+        hls.destroy();
+      } catch {
+        /* noop */
+      }
+      hls = null;
+    }
+    if (tsPlayer) {
+      try {
+        tsPlayer.pause();
+        tsPlayer.unload();
+        tsPlayer.detachMediaElement();
+        tsPlayer.destroy();
+      } catch {
+        /* noop */
+      }
+      tsPlayer = null;
+    }
+    video.pause();
+    video.removeAttribute("src");
+  };
+
   const attachNative = () => {
-    video.src = url;
-    video.play().catch(() => cb.onError("fatal"));
+    nativeActive = true;
+    video.src = streamUrl;
+    video.play().catch(() => {});
+  };
+
+  const attachTs = async () => {
+    const mpegtsModule = await import("mpegts.js");
+    if (destroyed) return;
+    const mpegts = mpegtsModule.default;
+
+    if (!mpegts.isSupported()) {
+      attachNative();
+      return;
+    }
+
+    const player = mpegts.createPlayer(
+      {
+        type: "mpegts",
+        isLive: true,
+        url: streamUrl,
+      },
+      {
+        enableStashBuffer: true,
+        stashInitialSize: 384 * 1024,
+        liveBufferLatencyChasing: true,
+        autoCleanupSourceBuffer: true,
+      },
+    ) as unknown as MpegtsPlayer;
+    tsPlayer = player;
+    player.attachMediaElement(video);
+    player.load();
+    Promise.resolve(player.play()).catch(() => {});
+
+    let errored = false;
+    player.on(mpegts.Events.ERROR, () => {
+      if (destroyed || errored) return;
+      errored = true;
+      // MPEG-TS falhou. Em URLs sem extensão ainda vale tentar a reprodução
+      // nativa (pode ser um MP4 servido sem extensão); nos outros casos, erro.
+      teardownCurrentPlayer();
+      if (kind === "unknown") attachNative();
+      else cb.onError("network");
+    });
   };
 
   const attachHls = async () => {
@@ -103,19 +221,38 @@ export function attachStream(
       stretchShortVideoTrack: true,
       maxAudioFramesDrift: 1,
     });
-    hls.loadSource(url);
+    hls.loadSource(streamUrl);
     hls.attachMedia(video);
 
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      video.play().catch(() => {});
+      play();
     });
 
     hls.on(Hls.Events.ERROR, (_e, data) => {
       if (!data.fatal || destroyed) return;
+
+      // O "manifesto" não é HLS — em URLs sem extensão é quase sempre
+      // MPEG-TS direto: troca de motor em vez de desistir.
+      if (
+        data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR &&
+        kind === "unknown"
+      ) {
+        teardownCurrentPlayer();
+        void attachTs();
+        return;
+      }
+
       switch (data.type) {
         case Hls.ErrorTypes.NETWORK_ERROR:
-          // Inclui falhas de TLS/CORS — o navegador não distingue para o JS.
-          hls?.startLoad();
+          if (hlsRetries < 3) {
+            hlsRetries++;
+            hls?.startLoad();
+          } else if (kind === "unknown") {
+            teardownCurrentPlayer();
+            void attachTs();
+          } else {
+            cb.onError("network");
+          }
           break;
         case Hls.ErrorTypes.MEDIA_ERROR:
           // Tenta recuperar (ex.: troca de codec no meio do stream)
@@ -131,58 +268,17 @@ export function attachStream(
     });
   };
 
-  const attachTs = async () => {
-    const mpegtsModule = await import("mpegts.js");
-    if (destroyed) return;
-    const mpegts = mpegtsModule.default;
-
-    if (!mpegts.isSupported()) {
-      cb.onError("unsupported");
-      return;
-    }
-
-    const player = mpegts.createPlayer(
-      {
-        type: "mpegts",
-        isLive: true,
-        url,
-      },
-      {
-        enableStashBuffer: true,
-        stashInitialSize: 384 * 1024,
-        liveBufferLatencyChasing: true,
-        autoCleanupSourceBuffer: true,
-      },
-    ) as unknown as MpegtsPlayer;
-    tsPlayer = player;
-    player.attachMediaElement(video);
-    player.load();
-    Promise.resolve(player.play()).catch(() => cb.onError("fatal"));
-    player.on(mpegts.Events.ERROR, () => cb.onError("network"));
-  };
-
-
-  if (kind === "hls") void attachHls();
+  if (kind === "hls" || kind === "unknown") void attachHls();
   else if (kind === "ts") void attachTs();
   else attachNative();
 
   return () => {
     destroyed = true;
+    nativeActive = false;
     video.removeEventListener("playing", onPlaying);
+    video.removeEventListener("error", onNativeError);
     video.removeEventListener("error", onVideoError);
-    hls?.destroy();
-    if (tsPlayer) {
-      try {
-        tsPlayer.pause();
-        tsPlayer.unload();
-        tsPlayer.detachMediaElement();
-        tsPlayer.destroy();
-      } catch {
-        /* noop */
-      }
-    }
-    video.pause();
-    video.removeAttribute("src");
+    teardownCurrentPlayer();
   };
 }
 
@@ -190,7 +286,7 @@ export const STREAM_ERROR_MESSAGES: Record<StreamErrorReason, string> = {
   "mixed-content":
     "Este stream usa HTTP e a página é HTTPS — o navegador bloqueia conteúdo misto. Use um stream HTTPS.",
   network:
-    "Falha de rede ao carregar o stream. Pode ser CORS ou um certificado TLS autoassinado, que o navegador bloqueia por segurança.",
+    "Falha de rede ao carregar o stream. O servidor pode estar offline, fora do ar ou bloqueando o acesso.",
   media: "O codec deste stream não é suportado pelo seu navegador.",
   unsupported: "Este formato de stream não é suportado pelo seu navegador.",
   fatal: "Não foi possível reproduzir este stream.",
