@@ -7,3 +7,4 @@
   - [x] Fallbacks e retentativas em erros de rede fatais
   - [x] Aviso honesto sobre TLS autoassinado (navegador bloqueia; JS não contorna)
 - [x] Bug: importação de lista (arquivo/texto/URL) travando — era build quebrado; testado e funcionando
+- [x] Importação real: download de URL pelo servidor, arquivo com seleção/progresso, limites e catálogo sem dados fictícios
