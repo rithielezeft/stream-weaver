@@ -132,7 +132,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
     setSuccess(null);
     if (file.size > MAX_FILE_BYTES) {
       setSelectedFile(null);
-      setError("O arquivo excede o limite de 150 MB.");
+      setError(`O arquivo excede o limite de ${LIMIT_LABEL}.`);
       return;
     }
     if (!/\.(m3u8?|txt)$/i.test(file.name)) {
@@ -189,7 +189,9 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
             {selectedFile?.name ?? "Selecionar arquivo .m3u / .m3u8"}
           </span>
           <span className="font-mono text-[10px] text-slate-500">
-            {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB · pronto para importar` : "arraste ou clique · máximo 150 MB"}
+            {selectedFile
+              ? `${selectedFile.size > 1024 * 1024 ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` : `${(selectedFile.size / 1024).toFixed(1)} KB`} · pronto para importar`
+              : `arraste ou clique · máximo ${LIMIT_LABEL}`}
           </span>
         </Button>
       ) : (
