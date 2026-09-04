@@ -83,6 +83,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
     setError(null);
     setSuccess(null);
     setLoading(true);
+    setProgress(null);
     try {
       if (mode === "url") {
       const url = value.trim();
@@ -90,7 +91,9 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
         setError("Cole a URL da lista M3U/M3U8.");
         return;
       }
+        startSimulatedProgress();
         const result = await fetchPlaylist({ data: { url } });
+        setProgress(100);
         finish(parseM3U(result.text), new URL(result.sourceUrl).hostname);
       } else if (mode === "file") {
         if (!selectedFile) {
@@ -98,10 +101,10 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
           return;
         }
         if (selectedFile.size > MAX_FILE_BYTES) {
-          setError("O arquivo excede o limite de 150 MB.");
+          setError(`O arquivo excede o limite de ${LIMIT_LABEL}.`);
           return;
         }
-        const content = await selectedFile.text();
+        const content = await readFileWithProgress(selectedFile);
         finish(parseM3U(content), selectedFile.name);
       } else {
         if (!value.trim()) {
