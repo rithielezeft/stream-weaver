@@ -116,11 +116,12 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "";
       setError(
-        message.includes("150 MB") || message.includes("rede local") || message.includes("erro ")
+        message.includes("550 MB") || message.includes("rede local") || message.includes("erro ")
           ? message
           : "Não foi possível acessar essa URL. Confirme o endereço e se o servidor da lista está online.",
       );
     } finally {
+      stopSimulatedProgress();
       setLoading(false);
     }
   };
