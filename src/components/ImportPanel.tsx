@@ -224,8 +224,29 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
         className="mt-3 h-auto rounded-xl bg-live/90 py-3 text-sm font-bold text-ink transition-transform hover:-translate-y-0.5 hover:bg-live disabled:opacity-60"
       >
         {loading && <Loader2 className="size-4 animate-spin" />}
-        {loading ? (mode === "url" ? "Baixando e lendo…" : "Lendo arquivo…") : "Importar canais"}
+        {loading
+          ? progress !== null
+            ? `${mode === "url" ? "Baixando" : "Lendo"}… ${Math.round(progress)}%`
+            : mode === "url"
+              ? "Baixando e lendo…"
+              : "Lendo arquivo…"
+          : "Importar canais"}
       </Button>
+
+      {loading && (
+        <div role="status" className="mt-3">
+          <div className="h-2 overflow-hidden rounded-full bg-ink/80">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-aurora-1 via-aurora-2 to-live transition-[width] duration-200"
+              style={{ width: `${Math.round(progress ?? 8)}%` }}
+            />
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+            {progress !== null ? `${Math.round(progress)}% concluído. ` : ""}
+            Listas grandes podem demorar na primeira vez — não feche esta página.
+          </p>
+        </div>
+      )}
 
       <div className="mt-5 grid grid-cols-3 gap-3 border-t border-white/5 pt-5 text-center">
         <div>
