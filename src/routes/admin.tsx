@@ -66,6 +66,7 @@ function AdminPage() {
   const [showcaseCount, setShowcaseCount] = useState(0);
   const [showcaseInfo, setShowcaseInfo] = useState("");
   const [newPlan, setNewPlan] = useState({ id: "", name: "", days: 30, price: 0, description: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError("");
@@ -245,20 +246,51 @@ function AdminPage() {
               >
                 <span className="text-sm font-semibold">
                   {p.name} · {p.days} dias · R$ {p.price.toFixed(2)}
+                  {p.description ? ` · ${p.description}` : ""}
+                  {p.active ? "" : " · inativo"}
                 </span>
-                <button
-                  onClick={() => void act(() => deletePlan({ data: { id: p.id } }))}
-                  className="text-xs text-live hover:underline"
-                >
-                  remover
-                </button>
+                <span className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setEditingId(p.id);
+                      setNewPlan({
+                        id: p.id,
+                        name: p.name,
+                        days: p.days,
+                        price: p.price,
+                        description: p.description,
+                      });
+                    }}
+                    className="text-xs text-aurora-2 hover:underline"
+                  >
+                    editar
+                  </button>
+                  <button
+                    onClick={() =>
+                      void act(() => savePlan({ data: { ...p, active: !p.active } }))
+                    }
+                    className="text-xs text-slate-300 hover:underline"
+                  >
+                    {p.active ? "desativar" : "ativar"}
+                  </button>
+                  <button
+                    onClick={() => void act(() => deletePlan({ data: { id: p.id } }))}
+                    className="text-xs text-live hover:underline"
+                  >
+                    remover
+                  </button>
+                </span>
               </div>
             ))}
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <p className="mt-5 text-xs text-slate-400">
+            {editingId ? `Editando o plano "${editingId}".` : "Criar um novo plano:"}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
             <input
               className={field}
               placeholder="código (ex.: mensal)"
+              disabled={Boolean(editingId)}
               value={newPlan.id}
               onChange={(e) => setNewPlan({ ...newPlan, id: e.target.value })}
             />
@@ -291,14 +323,26 @@ function AdminPage() {
             />
             <button
               onClick={() =>
-                void act(() => savePlan({ data: { ...newPlan, active: true } })).then(() =>
-                  setNewPlan({ id: "", name: "", days: 30, price: 0, description: "" }),
-                )
+                void act(() => savePlan({ data: { ...newPlan, active: true } })).then(() => {
+                  setNewPlan({ id: "", name: "", days: 30, price: 0, description: "" });
+                  setEditingId(null);
+                })
               }
               className="rounded-full bg-aurora-2 px-5 py-2 text-xs font-bold text-ink"
             >
-              Salvar plano
+              {editingId ? "Salvar alterações" : "Salvar plano"}
             </button>
+            {editingId && (
+              <button
+                onClick={() => {
+                  setEditingId(null);
+                  setNewPlan({ id: "", name: "", days: 30, price: 0, description: "" });
+                }}
+                className="text-xs text-slate-300 hover:underline"
+              >
+                cancelar
+              </button>
+            )}
           </div>
         </section>
 

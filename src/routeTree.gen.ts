@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as ApiPublicInfinitepayWebhookRouteImport } from './routes/api/public/infinitepay-webhook'
+import { Route as ApiPublicPosterRouteImport } from './routes/api/public/poster'
 import { Route as ApiPublicStreamProxyRouteImport } from './routes/api/public/stream-proxy'
 
 const IndexRoute = IndexRouteImport.update({
@@ -36,6 +37,11 @@ const ApiPublicInfinitepayWebhookRoute =
     path: '/api/public/infinitepay-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPosterRoute = ApiPublicPosterRouteImport.update({
+  id: '/api/public/poster',
+  path: '/api/public/poster',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStreamProxyRoute = ApiPublicStreamProxyRouteImport.update({
   id: '/api/public/stream-proxy',
   path: '/api/public/stream-proxy',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/conta': typeof ContaRoute
   '/api/public/infinitepay-webhook': typeof ApiPublicInfinitepayWebhookRoute
+  '/api/public/poster': typeof ApiPublicPosterRoute
   '/api/public/stream-proxy': typeof ApiPublicStreamProxyRoute
 }
 export interface FileRoutesByTo {
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/conta': typeof ContaRoute
   '/api/public/infinitepay-webhook': typeof ApiPublicInfinitepayWebhookRoute
+  '/api/public/poster': typeof ApiPublicPosterRoute
   '/api/public/stream-proxy': typeof ApiPublicStreamProxyRoute
 }
 export interface FileRoutesById {
@@ -62,6 +70,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/conta': typeof ContaRoute
   '/api/public/infinitepay-webhook': typeof ApiPublicInfinitepayWebhookRoute
+  '/api/public/poster': typeof ApiPublicPosterRoute
   '/api/public/stream-proxy': typeof ApiPublicStreamProxyRoute
 }
 export interface FileRouteTypes {
@@ -71,6 +80,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/conta'
     | '/api/public/infinitepay-webhook'
+    | '/api/public/poster'
     | '/api/public/stream-proxy'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -78,6 +88,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/conta'
     | '/api/public/infinitepay-webhook'
+    | '/api/public/poster'
     | '/api/public/stream-proxy'
   id:
     | '__root__'
@@ -85,6 +96,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/conta'
     | '/api/public/infinitepay-webhook'
+    | '/api/public/poster'
     | '/api/public/stream-proxy'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +105,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   ContaRoute: typeof ContaRoute
   ApiPublicInfinitepayWebhookRoute: typeof ApiPublicInfinitepayWebhookRoute
+  ApiPublicPosterRoute: typeof ApiPublicPosterRoute
   ApiPublicStreamProxyRoute: typeof ApiPublicStreamProxyRoute
 }
 
@@ -126,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInfinitepayWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/poster': {
+      id: '/api/public/poster'
+      path: '/api/public/poster'
+      fullPath: '/api/public/poster'
+      preLoaderRoute: typeof ApiPublicPosterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stream-proxy': {
       id: '/api/public/stream-proxy'
       path: '/api/public/stream-proxy'
@@ -141,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   ContaRoute: ContaRoute,
   ApiPublicInfinitepayWebhookRoute: ApiPublicInfinitepayWebhookRoute,
+  ApiPublicPosterRoute: ApiPublicPosterRoute,
   ApiPublicStreamProxyRoute: ApiPublicStreamProxyRoute,
 }
 export const routeTree = rootRouteImport

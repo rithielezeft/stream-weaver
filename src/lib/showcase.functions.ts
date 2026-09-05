@@ -13,7 +13,7 @@ export interface SiteInfo {
   posters: ShowcasePoster[];
 }
 
-const MAX_POSTERS = 240;
+const MAX_POSTERS = 1500;
 const MAX_SHOWCASE_BYTES = 80 * 1024 * 1024;
 
 /** Dados públicos da página inicial: WhatsApp de contato e capas da vitrine. */
