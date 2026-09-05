@@ -103,7 +103,7 @@ const loginSchema = z.object({
 
 export const loginAccount = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => loginSchema.parse(data))
-  .handler(async ({ data }): Promise<AccountView> => {
+  .handler(async ({ data }): Promise<AccountResult> => {
     const { collections } = await import("./db.server");
     const { verifyPassword, createSession } = await import("./auth.server");
     const { toAccountView } = await import("./account.server");
@@ -111,8 +111,9 @@ export const loginAccount = createServerFn({ method: "POST" })
     const id = data.email.toLowerCase();
     const user = await users.findOne({ $or: [{ emailLower: id }, { usernameLower: id }] });
     if (!user || !(await verifyPassword(data.password, user.passwordHash)))
-      throw new Error("E-mail ou senha incorretos.");
-    if (user.status === "blocked") throw new Error("Conta bloqueada. Fale com o suporte.");
+      return { ok: false, message: "E-mail ou senha incorretos." };
+    if (user.status === "blocked")
+      return { ok: false, message: "Conta bloqueada. Fale com o suporte." };
     const update: Record<string, unknown> = { lastLoginAt: new Date() };
     await users.updateOne(
       { _id: (user as { _id: unknown })._id } as never,
