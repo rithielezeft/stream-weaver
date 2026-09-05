@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { Hero } from "@/components/Hero";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ChannelRow } from "@/components/ChannelRow";
 import { PlayerOverlay } from "@/components/PlayerOverlay";
 import { groupByCategory, type Channel } from "@/lib/m3u";
+import { sortGroups } from "@/lib/categories";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,8 +45,19 @@ function Index() {
     );
   }, [channels, search]);
 
-  const groups = useMemo(() => groupByCategory(filtered), [filtered]);
+  const groups = useMemo(() => sortGroups(groupByCategory(filtered)), [filtered]);
   const featured = filtered[0] ?? channels[0] ?? null;
+
+  // Mostra as primeiras categorias na hora e vai revelando o resto em segundo
+  // plano, para listas gigantes não travarem a tela logo após a importação.
+  const [rowsVisible, setRowsVisible] = useState(4);
+  useEffect(() => setRowsVisible(4), [filtered]);
+  useEffect(() => {
+    if (rowsVisible >= groups.length) return;
+    const id = setTimeout(() => setRowsVisible((v) => v + 4), 300);
+    return () => clearTimeout(id);
+  }, [rowsVisible, groups.length]);
+
 
   const toggleList = (id: string) =>
     setMyList((prev) => {
@@ -105,9 +118,15 @@ function Index() {
               Nenhum canal encontrado para “{search}”.
             </p>
           )}
-          {groups.map(([name, items]) => (
+          {groups.slice(0, rowsVisible).map(([name, items]) => (
             <ChannelRow key={name} title={name} channels={items} onPlay={setCurrent} />
           ))}
+          {rowsVisible < groups.length && (
+            <p className="py-6 text-center font-mono text-xs text-slate-500">
+              Carregando mais categorias… ({rowsVisible}/{groups.length})
+            </p>
+          )}
+
         </section>
       </main>
 
