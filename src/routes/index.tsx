@@ -287,6 +287,18 @@ function Index() {
                       : "Mudar plano"}
                   </Link>
                 )}
+                {whatsapp && account.role !== "admin" && (
+                  <a
+                    href={`https://wa.me/${whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
+                      `Olá! Sou ${account.username} e gostaria de solicitar uma lista para minha conta na Vela.tv.`,
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full border border-aurora-2/50 px-5 py-2.5 text-xs font-semibold text-aurora-2 hover:bg-aurora-2/10"
+                  >
+                    Solicitar uma lista
+                  </a>
+                )}
                 {whatsLink && (
                   <a
                     href={whatsLink}
