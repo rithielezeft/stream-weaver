@@ -182,6 +182,50 @@ function ContaPage() {
               </div>
             </div>
 
+            {account.role !== "admin" && (
+              <div className="rounded-3xl border border-white/10 bg-panel/60 p-8">
+                <h2 className="text-xl font-bold text-foreground">Minha lista M3U</h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Guarde aqui o link da sua lista. Depois é só abrir o catálogo para assistir.
+                </p>
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <input
+                    value={listUrl}
+                    onChange={(e) => setListUrl(e.target.value)}
+                    placeholder="http://servidor.com/get.php?username=...&type=m3u_plus"
+                    className={field}
+                  />
+                  <button
+                    type="button"
+                    disabled={savingList}
+                    onClick={async () => {
+                      setSavingList(true);
+                      setListMsg("");
+                      try {
+                        await saveList({ data: { m3uUrl: listUrl.trim() } });
+                        setListMsg("Lista salva na sua conta.");
+                      } catch {
+                        setListMsg("Não foi possível salvar agora.");
+                      } finally {
+                        setSavingList(false);
+                      }
+                    }}
+                    className="rounded-full bg-aurora-2 px-6 py-3 text-xs font-bold text-ink disabled:opacity-60"
+                  >
+                    {savingList ? "Salvando…" : "Salvar lista"}
+                  </button>
+                </div>
+                {listMsg && <p className="mt-3 text-xs text-aurora-2">{listMsg}</p>}
+                <Link
+                  to="/"
+                  className="mt-4 inline-block rounded-full border border-white/15 px-5 py-2 text-xs font-semibold text-slate-100 hover:bg-white/5"
+                >
+                  Abrir catálogo e carregar a lista
+                </Link>
+              </div>
+            )}
+
+
             {account.role !== "admin" && plans.length > 0 && (
               <div className="rounded-3xl border border-white/10 bg-panel/60 p-8">
                 <h2 className="text-xl font-bold text-foreground">Planos</h2>
