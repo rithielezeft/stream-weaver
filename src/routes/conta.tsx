@@ -83,11 +83,12 @@ function ContaPage() {
     setError("");
     try {
       const deviceId = getDeviceId();
-      const acc =
+      const res =
         mode === "register"
           ? await register({ data: { ...form, deviceId } })
           : await login({ data: { email: form.email, password: form.password, deviceId } });
-      setAccount(acc);
+      if (res.ok) setAccount(res.account);
+      else setError(res.message);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível continuar.");
     } finally {
