@@ -18,6 +18,11 @@ export interface AccountView {
 
 const TRIAL_DAYS = 3;
 
+/** Resultado esperado: sucesso com a conta, ou recado amigável de erro. */
+export type AccountResult =
+  | { ok: true; account: AccountView }
+  | { ok: false; message: string };
+
 const registerSchema = z.object({
   username: z.string().trim().min(3).max(32),
   email: z.string().trim().email(),
@@ -29,7 +34,7 @@ const registerSchema = z.object({
 
 export const registerAccount = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => registerSchema.parse(data))
-  .handler(async ({ data }): Promise<AccountView> => {
+  .handler(async ({ data }): Promise<AccountResult> => {
     const { collections, ensureIndexes } = await import("./db.server");
     const { hashPassword, createSession } = await import("./auth.server");
     const { toAccountView } = await import("./account.server");
@@ -39,17 +44,20 @@ export const registerAccount = createServerFn({ method: "POST" })
     const emailLower = data.email.toLowerCase();
     const usernameLower = data.username.toLowerCase();
 
-    if (await users.findOne({ emailLower })) throw new Error("Este e-mail já tem conta.");
+    if (await users.findOne({ emailLower }))
+      return { ok: false, message: "Este e-mail já tem conta." };
     if (await users.findOne({ usernameLower }))
-      throw new Error("Este nome de usuário já está em uso.");
+      return { ok: false, message: "Este nome de usuário já está em uso." };
 
     // Bloqueio de teste repetido no mesmo navegador/aparelho.
     const device = await devices.findOne({ deviceId: data.deviceId });
     if (device) {
       await devices.updateOne({ deviceId: data.deviceId }, { $inc: { attempts: 1 } });
-      throw new Error(
-        "Este aparelho já usou o teste gratuito de 3 dias. Entre na sua conta ou escolha um plano.",
-      );
+      return {
+        ok: false,
+        message:
+          "Este aparelho já usou o teste gratuito de 3 dias. Entre na sua conta ou escolha um plano.",
+      };
     }
 
     const now = new Date();
@@ -84,7 +92,7 @@ export const registerAccount = createServerFn({ method: "POST" })
       attempts: 1,
     });
     await createSession(userId);
-    return toAccountView({ ...doc, _id: result.insertedId } as never);
+    return { ok: true, account: toAccountView({ ...doc, _id: result.insertedId } as never) };
   });
 
 const loginSchema = z.object({
@@ -95,7 +103,7 @@ const loginSchema = z.object({
 
 export const loginAccount = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => loginSchema.parse(data))
-  .handler(async ({ data }): Promise<AccountView> => {
+  .handler(async ({ data }): Promise<AccountResult> => {
     const { collections } = await import("./db.server");
     const { verifyPassword, createSession } = await import("./auth.server");
     const { toAccountView } = await import("./account.server");
@@ -103,8 +111,9 @@ export const loginAccount = createServerFn({ method: "POST" })
     const id = data.email.toLowerCase();
     const user = await users.findOne({ $or: [{ emailLower: id }, { usernameLower: id }] });
     if (!user || !(await verifyPassword(data.password, user.passwordHash)))
-      throw new Error("E-mail ou senha incorretos.");
-    if (user.status === "blocked") throw new Error("Conta bloqueada. Fale com o suporte.");
+      return { ok: false, message: "E-mail ou senha incorretos." };
+    if (user.status === "blocked")
+      return { ok: false, message: "Conta bloqueada. Fale com o suporte." };
     const update: Record<string, unknown> = { lastLoginAt: new Date() };
     await users.updateOne(
       { _id: (user as { _id: unknown })._id } as never,
@@ -113,7 +122,7 @@ export const loginAccount = createServerFn({ method: "POST" })
         : { $set: update },
     );
     await createSession(String((user as { _id: unknown })._id));
-    return toAccountView(user);
+    return { ok: true, account: toAccountView(user) };
   });
 
 export const logoutAccount = createServerFn({ method: "POST" }).handler(async () => {
