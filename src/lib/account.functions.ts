@@ -34,7 +34,7 @@ const registerSchema = z.object({
 
 export const registerAccount = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => registerSchema.parse(data))
-  .handler(async ({ data }): Promise<AccountView> => {
+  .handler(async ({ data }): Promise<AccountResult> => {
     const { collections, ensureIndexes } = await import("./db.server");
     const { hashPassword, createSession } = await import("./auth.server");
     const { toAccountView } = await import("./account.server");
@@ -44,17 +44,20 @@ export const registerAccount = createServerFn({ method: "POST" })
     const emailLower = data.email.toLowerCase();
     const usernameLower = data.username.toLowerCase();
 
-    if (await users.findOne({ emailLower })) throw new Error("Este e-mail já tem conta.");
+    if (await users.findOne({ emailLower }))
+      return { ok: false, message: "Este e-mail já tem conta." };
     if (await users.findOne({ usernameLower }))
-      throw new Error("Este nome de usuário já está em uso.");
+      return { ok: false, message: "Este nome de usuário já está em uso." };
 
     // Bloqueio de teste repetido no mesmo navegador/aparelho.
     const device = await devices.findOne({ deviceId: data.deviceId });
     if (device) {
       await devices.updateOne({ deviceId: data.deviceId }, { $inc: { attempts: 1 } });
-      throw new Error(
-        "Este aparelho já usou o teste gratuito de 3 dias. Entre na sua conta ou escolha um plano.",
-      );
+      return {
+        ok: false,
+        message:
+          "Este aparelho já usou o teste gratuito de 3 dias. Entre na sua conta ou escolha um plano.",
+      };
     }
 
     const now = new Date();
