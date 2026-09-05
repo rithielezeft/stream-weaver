@@ -132,3 +132,15 @@ export async function ensureIndexes(): Promise<void> {
   ]);
   ensured = true;
 }
+
+/** Carrega o driver em tempo de execução (evita empacotá-lo no bundle do worker). */
+export async function loadMongo(): Promise<typeof import("mongodb")> {
+  const moduleName = "mongodb";
+  return (await import(/* @vite-ignore */ moduleName)) as typeof import("mongodb");
+}
+
+/** Converte uma string em ObjectId sem importar o driver estaticamente. */
+export async function toObjectId(id: string): Promise<unknown> {
+  const { ObjectId } = await loadMongo();
+  return new ObjectId(id);
+}
