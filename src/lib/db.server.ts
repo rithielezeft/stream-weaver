@@ -1,4 +1,4 @@
-import { MongoClient, type Collection, type Db } from "mongodb";
+import type { MongoClient, Collection, Db } from "mongodb";
 
 /**
  * Conexão única com o MongoDB (MONGO_URL). As coleções usam o prefixo
