@@ -60,6 +60,7 @@ function AdminPage() {
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [denied, setDenied] = useState(false);
   const [whatsapp, setWhatsapp] = useState("");
   const [showcaseUrl, setShowcaseUrl] = useState("");
   const [showcaseCount, setShowcaseCount] = useState(0);
@@ -70,6 +71,12 @@ function AdminPage() {
     setError("");
     try {
       const data = await overview({ data: { search, filter } });
+      if ("unauthorized" in data) {
+        setDenied(true);
+        setError(data.message);
+        return;
+      }
+      setDenied(false);
       setRows(data.rows);
       setPlans(data.plans);
       setStats(data.stats);
@@ -96,6 +103,25 @@ function AdminPage() {
       setError(e instanceof Error ? e.message : "Erro na operação.");
     }
   };
+
+  if (denied) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-ink px-6 text-center text-slate-100">
+        <div>
+          <h1 className="text-2xl font-black text-foreground">Área restrita</h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Entre com a conta de administrador para abrir este painel.
+          </p>
+          <Link
+            to="/conta"
+            className="mt-5 inline-block rounded-full bg-aurora-2 px-6 py-3 text-sm font-bold text-ink"
+          >
+            Entrar
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-ink text-slate-100">

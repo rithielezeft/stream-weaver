@@ -35,7 +35,12 @@ export const adminOverview = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { collections } = await import("./db.server");
     const { requireAdmin } = await import("./auth.server");
-    await requireAdmin();
+    try {
+      await requireAdmin();
+    } catch (e) {
+      // Sem sessão de administrador devolvemos um aviso, não um erro de tela.
+      return { unauthorized: true as const, message: e instanceof Error ? e.message : "Acesso restrito." };
+    }
     const { users, plans, settings, payments } = await collections();
 
     const now = new Date();
