@@ -92,7 +92,7 @@ export const registerAccount = createServerFn({ method: "POST" })
       attempts: 1,
     });
     await createSession(userId);
-    return toAccountView({ ...doc, _id: result.insertedId } as never);
+    return { ok: true, account: toAccountView({ ...doc, _id: result.insertedId } as never) };
   });
 
 const loginSchema = z.object({
