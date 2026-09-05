@@ -10,6 +10,12 @@ import {
   type AdminPlan,
   type AdminUserRow,
 } from "@/lib/admin.functions";
+import {
+  adminClearShowcase,
+  adminForgetShowcaseSource,
+  adminImportShowcase,
+  adminSaveSupport,
+} from "@/lib/showcase.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -41,6 +47,10 @@ function AdminPage() {
   const deletePlan = useServerFn(adminDeletePlan);
   const saveHandle = useServerFn(adminSaveInfinitePay);
   const updateUser = useServerFn(adminUpdateUser);
+  const saveSupport = useServerFn(adminSaveSupport);
+  const importShowcase = useServerFn(adminImportShowcase);
+  const clearShowcase = useServerFn(adminClearShowcase);
+  const forgetShowcase = useServerFn(adminForgetShowcaseSource);
 
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [plans, setPlans] = useState<AdminPlan[]>([]);
@@ -50,6 +60,10 @@ function AdminPage() {
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [whatsapp, setWhatsapp] = useState("");
+  const [showcaseUrl, setShowcaseUrl] = useState("");
+  const [showcaseCount, setShowcaseCount] = useState(0);
+  const [showcaseInfo, setShowcaseInfo] = useState("");
   const [newPlan, setNewPlan] = useState({ id: "", name: "", days: 30, price: 0, description: "" });
 
   const load = useCallback(async () => {
@@ -60,6 +74,9 @@ function AdminPage() {
       setPlans(data.plans);
       setStats(data.stats);
       setHandle(data.infinitepayHandle);
+      setWhatsapp(data.supportWhatsapp);
+      setShowcaseCount(data.showcaseCount);
+      setShowcaseUrl(data.showcaseSource?.url ?? "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar.");
     } finally {
@@ -124,6 +141,72 @@ function AdminPage() {
               Salvar
             </button>
           </div>
+        </section>
+
+
+        <section className="mt-8 rounded-2xl border border-white/10 bg-panel/60 p-5">
+          <h2 className="text-lg font-bold text-foreground">Visitantes sem conta</h2>
+          <p className="mt-1 text-xs text-slate-400">
+            Quem entra no site sem conta vê só as capas abaixo e o convite para criar conta ou
+            chamar no WhatsApp.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <input
+              className={field}
+              placeholder="WhatsApp com DDD (ex.: 5511999999999)"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+            />
+            <button
+              onClick={() => void act(() => saveSupport({ data: { whatsapp } }))}
+              className="rounded-full bg-aurora-2 px-5 py-2 text-xs font-bold text-ink"
+            >
+              Salvar WhatsApp
+            </button>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <input
+              className={`${field} min-w-[320px] flex-1`}
+              placeholder="Link da lista M3U só para as capas"
+              value={showcaseUrl}
+              onChange={(e) => setShowcaseUrl(e.target.value)}
+            />
+            <button
+              onClick={() => {
+                setShowcaseInfo("Baixando a lista e guardando as capas…");
+                void act(async () => {
+                  const res = await importShowcase({ data: { url: showcaseUrl } });
+                  setShowcaseInfo(`${res.total} capas guardadas.`);
+                });
+              }}
+              className="rounded-full bg-aurora-2 px-5 py-2 text-xs font-bold text-ink"
+            >
+              Guardar capas
+            </button>
+            <button
+              onClick={() => {
+                setShowcaseUrl("");
+                setShowcaseInfo("Lista removida — as capas continuam salvas.");
+                void act(() => forgetShowcase({}));
+              }}
+              className="text-xs text-slate-300 hover:underline"
+            >
+              remover a lista (manter capas)
+            </button>
+            <button
+              onClick={() => {
+                setShowcaseInfo("Capas apagadas.");
+                void act(() => clearShowcase({}));
+              }}
+              className="text-xs text-live hover:underline"
+            >
+              apagar capas
+            </button>
+          </div>
+          <p className="mt-2 font-mono text-[11px] text-slate-500">
+            {showcaseCount} capas guardadas. {showcaseInfo}
+          </p>
         </section>
 
         <section className="mt-8 rounded-2xl border border-white/10 bg-panel/60 p-5">
