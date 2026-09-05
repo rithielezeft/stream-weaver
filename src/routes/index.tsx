@@ -138,11 +138,14 @@ function Index() {
           )}
           <div id="import-panel">
             <ImportPanel
-              onImport={setChannels}
+              onImport={handleImport}
               totalChannels={channels.length}
               totalCategories={groups.length}
+              saved={saved}
+              onClearSaved={handleClearSaved}
             />
           </div>
+
         </section>
 
         <section className="mt-12 space-y-10 animate-rise [animation-delay:200ms]">
