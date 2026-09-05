@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { Play, ChevronDown } from "lucide-react";
-import type { Channel } from "@/lib/m3u";
+import { Play, ChevronDown, Layers } from "lucide-react";
+import type { CatalogItem } from "@/lib/series";
 
 /** Quantas capas renderizar por vez — evita milhares de elementos na memória. */
 const PAGE_SIZE = 24;
@@ -43,29 +43,38 @@ function useNearViewport<T extends HTMLElement>() {
   return { ref, near };
 }
 
+function describe(item: CatalogItem): string {
+  if (item.kind === "series") {
+    const s = item.series.seasons.length;
+    return `${s} ${s === 1 ? "temporada" : "temporadas"} · ${item.series.total} ep.`;
+  }
+  return item.channel.live ? "Ao vivo" : (item.channel.meta ?? item.group);
+}
+
 const Card = memo(function Card({
-  channel,
-  onPlay,
+  item,
+  onOpen,
   wide,
 }: {
-  channel: Channel;
-  onPlay: (c: Channel) => void;
+  item: CatalogItem;
+  onOpen: (i: CatalogItem) => void;
   wide?: boolean;
 }) {
-  const glow = GLOW[channel.group] ?? "hover:ring-aurora-2/60 hover:glow-aurora-2";
+  const glow = GLOW[item.group] ?? "hover:ring-aurora-2/60 hover:glow-aurora-2";
   const { ref, near } = useNearViewport<HTMLButtonElement>();
-  const src = channel.poster ?? channel.logo;
+  const src = item.kind === "series" ? item.series.logo : (item.channel.poster ?? item.channel.logo);
+  const live = item.kind === "channel" && item.channel.live;
   return (
     <button
       ref={ref}
-      onClick={() => onPlay(channel)}
-      className={`group relative overflow-hidden rounded-2xl text-left ring-1 ring-white/10 transition-all duration-300 ${wide ? "w-full" : "w-[180px] shrink-0"} ${glow}`}
+      onClick={() => onOpen(item)}
+      className={`group relative overflow-hidden rounded-2xl text-left ring-1 ring-white/10 transition-all duration-300 hover:z-20 ${wide ? "w-full" : "w-[180px] shrink-0"} ${glow}`}
     >
       <div className="aspect-[2/3] w-full overflow-hidden bg-surface">
         {src && near ? (
           <img
             src={src}
-            alt={`Capa de ${channel.name}`}
+            alt={`Capa de ${item.name}`}
             loading="lazy"
             decoding="async"
             width={512}
@@ -75,24 +84,46 @@ const Card = memo(function Card({
         ) : (
           <div className="grid h-full w-full place-items-center bg-gradient-to-br from-panel to-surface transition-transform duration-500 group-hover:scale-105">
             <span className="text-4xl font-black text-aurora-2/60">
-              {channel.name.slice(0, 1).toUpperCase()}
+              {item.name.slice(0, 1).toUpperCase()}
             </span>
           </div>
         )}
       </div>
-      {channel.live && (
+
+      {live && (
         <span className="absolute left-3 top-3 rounded-md bg-live px-2 py-0.5 font-mono text-[10px] font-bold text-ink">
           AO VIVO
+        </span>
+      )}
+      {item.kind === "series" && (
+        <span className="absolute left-3 top-3 flex items-center gap-1 rounded-md bg-aurora-1/80 px-2 py-0.5 font-mono text-[10px] font-bold text-ink">
+          <Layers className="size-3" />
+          SÉRIE
         </span>
       )}
       <span className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-ink/70 opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100">
         <Play className="size-3.5 fill-white text-white" />
       </span>
+
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink to-transparent p-3 pt-10">
-        <div className="truncate text-sm font-bold text-foreground">{channel.name}</div>
-        <div className="font-mono text-[10px] text-slate-400">
-          {channel.meta ?? channel.group}
+        <div className="truncate text-sm font-bold text-foreground">{item.name}</div>
+        <div className="font-mono text-[10px] text-slate-400">{describe(item)}</div>
+      </div>
+
+      {/* Informações ao parar o mouse em cima */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-3 border-t border-white/10 bg-ink/95 p-3 opacity-0 backdrop-blur-md transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="line-clamp-2 text-sm font-bold text-foreground">{item.name}</div>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5 font-mono text-[10px] text-slate-400">
+          <span className="rounded bg-white/10 px-1.5 py-0.5 text-aurora-2">
+            {item.kind === "series" ? "Série" : live ? "Ao vivo" : "Filme"}
+          </span>
+          <span className="truncate">{item.group}</span>
         </div>
+        <div className="mt-1 font-mono text-[10px] text-slate-500">{describe(item)}</div>
+        <span className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-aurora-2 px-3 py-1.5 text-xs font-bold text-ink">
+          <Play className="size-3 fill-ink" />
+          {item.kind === "series" ? "Ver temporadas" : "Assistir"}
+        </span>
       </div>
     </button>
   );
@@ -100,11 +131,11 @@ const Card = memo(function Card({
 
 interface ChannelRowProps {
   title: string;
-  channels: Channel[];
-  onPlay: (c: Channel) => void;
+  items: CatalogItem[];
+  onOpen: (i: CatalogItem) => void;
 }
 
-export function ChannelRow({ title, channels, onPlay }: ChannelRowProps) {
+export function ChannelRow({ title, items, onOpen }: ChannelRowProps) {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [expanded, setExpanded] = useState(false);
   const [gridVisible, setGridVisible] = useState(GRID_PAGE);
@@ -118,18 +149,18 @@ export function ChannelRow({ title, channels, onPlay }: ChannelRowProps) {
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
-          setGridVisible((v) => (v >= channels.length ? v : v + GRID_PAGE));
+          setGridVisible((v) => (v >= items.length ? v : v + GRID_PAGE));
         }
       },
       { rootMargin: "600px" },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [expanded, channels.length, gridVisible]);
+  }, [expanded, items.length, gridVisible]);
 
-  if (channels.length === 0) return null;
-  const shown = channels.slice(0, expanded ? gridVisible : visible);
-  const remaining = channels.length - shown.length;
+  if (items.length === 0) return null;
+  const shown = items.slice(0, expanded ? gridVisible : visible);
+  const remaining = items.length - shown.length;
 
   return (
     <div id={`cat-${title}`} className="scroll-mt-24">
@@ -137,7 +168,7 @@ export function ChannelRow({ title, channels, onPlay }: ChannelRowProps) {
         <h2 className="text-2xl font-bold tracking-tight text-foreground">{title}</h2>
         <div className="flex items-center gap-3">
           <span className="font-mono text-xs text-slate-400">
-            {channels.length.toLocaleString("pt-BR")} {channels.length === 1 ? "item" : "itens"}
+            {items.length.toLocaleString("pt-BR")} {items.length === 1 ? "item" : "itens"}
           </span>
           <button
             onClick={() => {
@@ -154,8 +185,8 @@ export function ChannelRow({ title, channels, onPlay }: ChannelRowProps) {
       {expanded ? (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-            {shown.map((ch) => (
-              <Card key={ch.id} channel={ch} onPlay={onPlay} wide />
+            {shown.map((it) => (
+              <Card key={it.id} item={it} onOpen={onOpen} wide />
             ))}
           </div>
           <div ref={sentinel} className="h-8" />
@@ -173,8 +204,8 @@ export function ChannelRow({ title, channels, onPlay }: ChannelRowProps) {
         </>
       ) : (
         <div className="-mx-2 flex gap-4 overflow-x-auto px-2 pb-2 scrollbar-none">
-          {shown.map((ch) => (
-            <Card key={ch.id} channel={ch} onPlay={onPlay} />
+          {shown.map((it) => (
+            <Card key={it.id} item={it} onOpen={onOpen} />
           ))}
           {remaining > 0 && (
             <button

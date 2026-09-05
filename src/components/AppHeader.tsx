@@ -1,4 +1,5 @@
 import { Search, Plus, ChevronDown } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 interface AppHeaderProps {
@@ -89,6 +90,12 @@ export function AppHeader({ categories, search, onSearch, onOpenImport }: AppHea
               className="w-40 bg-transparent text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none lg:w-52"
             />
           </div>
+          <Link
+            to="/conta"
+            className="hidden rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/5 sm:inline-block"
+          >
+            Minha conta
+          </Link>
           <button
             onClick={onOpenImport}
             className="flex items-center gap-2 rounded-full bg-gradient-to-r from-aurora-1 via-aurora-2 to-aurora-3 px-4 py-2 text-sm font-semibold text-ink transition-transform hover:-translate-y-0.5"
