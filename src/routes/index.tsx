@@ -14,6 +14,7 @@ import { matchesSection, type SectionId } from "@/lib/sections";
 import { clearPlaylist, loadPlaylist, savePlaylist } from "@/lib/playlist-store";
 import { claimPlaylist, getMyAccount, type AccountView } from "@/lib/account.functions";
 import { getSiteInfo, type ShowcasePoster } from "@/lib/showcase.functions";
+import { ShowcaseGrid } from "@/components/ShowcaseGrid";
 
 export const Route = createFileRoute("/")({
   head: () => ({
