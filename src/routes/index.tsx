@@ -275,7 +275,9 @@ function Index() {
               <div>
                 <p className="font-mono text-[11px] uppercase text-aurora-2">Situação da conta</p>
                 <p className="mt-1 text-sm font-bold text-foreground">
-                  {account.status === "trial"
+                  {account.unlimited
+                    ? "Administrador — acesso ilimitado"
+                    : account.status === "trial"
                     ? `Teste grátis — ${Math.max(0, account.daysLeft)} dia(s) restantes`
                     : account.status === "active"
                       ? `${account.planName ?? "Plano ativo"} — ${Math.max(0, account.daysLeft)} dia(s)`
@@ -284,20 +286,31 @@ function Index() {
                         : "Acesso vencido"}
                 </p>
                 <p className="mt-1 text-xs text-slate-400">
-                  {account.status === "trial"
+                  {account.unlimited
+                    ? "Sua conta não possui prazo de vencimento."
+                    : account.status === "trial"
                     ? "Conecte aqui a sua lista e ative um plano quando quiser continuar."
                     : "Você pode trocar de plano ou renovar a qualquer momento."}
                 </p>
               </div>
               <div className="flex gap-3">
-                <Link
-                  to="/conta"
-                  className="rounded-full bg-gradient-to-r from-aurora-1 via-aurora-2 to-aurora-3 px-5 py-2.5 text-xs font-bold text-ink"
-                >
-                  {account.status === "trial" || account.status === "expired"
-                    ? "Ativar plano"
-                    : "Mudar plano"}
-                </Link>
+                {account.role === "admin" ? (
+                  <Link
+                    to="/admin"
+                    className="rounded-full bg-gradient-to-r from-aurora-1 via-aurora-2 to-aurora-3 px-5 py-2.5 text-xs font-bold text-ink"
+                  >
+                    Painel do administrador
+                  </Link>
+                ) : (
+                  <Link
+                    to="/conta"
+                    className="rounded-full bg-gradient-to-r from-aurora-1 via-aurora-2 to-aurora-3 px-5 py-2.5 text-xs font-bold text-ink"
+                  >
+                    {account.status === "trial" || account.status === "expired"
+                      ? "Ativar plano"
+                      : "Mudar plano"}
+                  </Link>
+                )}
                 {whatsLink && (
                   <a
                     href={whatsLink}
