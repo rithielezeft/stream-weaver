@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize, X, Loader2 } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Volume2,
+  Volume1,
+  VolumeX,
+  Maximize,
+  X,
+  Loader2,
+  RotateCcw,
+  RotateCw,
+} from "lucide-react";
 import type { Channel } from "@/lib/m3u";
 import { attachStream, STREAM_ERROR_MESSAGES } from "@/lib/stream-player";
 
@@ -17,6 +28,11 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
   const [muted, setMuted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [volume, setVolume] = useState(1);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const seekable = duration > 0 && Number.isFinite(duration);
+
 
   useEffect(() => {
     const video = videoRef.current;
@@ -36,8 +52,106 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
   }, [channel]);
 
   useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    setCurrent(0);
+    setDuration(0);
+    const onTime = () => setCurrent(v.currentTime);
+    const onMeta = () => setDuration(Number.isFinite(v.duration) ? v.duration : 0);
+    const onPlayEv = () => setPlaying(true);
+    const onPauseEv = () => setPlaying(false);
+    const onVol = () => {
+      setVolume(v.volume);
+      setMuted(v.muted);
+    };
+    v.addEventListener("timeupdate", onTime);
+    v.addEventListener("durationchange", onMeta);
+    v.addEventListener("loadedmetadata", onMeta);
+    v.addEventListener("play", onPlayEv);
+    v.addEventListener("pause", onPauseEv);
+    v.addEventListener("volumechange", onVol);
+    return () => {
+      v.removeEventListener("timeupdate", onTime);
+      v.removeEventListener("durationchange", onMeta);
+      v.removeEventListener("loadedmetadata", onMeta);
+      v.removeEventListener("play", onPlayEv);
+      v.removeEventListener("pause", onPauseEv);
+      v.removeEventListener("volumechange", onVol);
+    };
+  }, [channel]);
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      void v.play().catch(() => {});
+    } else {
+      v.pause();
+    }
+  };
+
+  const skip = (seconds: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    const target = v.currentTime + seconds;
+    const max = Number.isFinite(v.duration) ? v.duration : target;
+    v.currentTime = Math.min(Math.max(target, 0), max);
+    setCurrent(v.currentTime);
+  };
+
+  const seekTo = (value: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = value;
+    setCurrent(value);
+  };
+
+  const changeVolume = (value: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.volume = value;
+    v.muted = value === 0;
+    setVolume(value);
+    setMuted(v.muted);
+  };
+
+  const toggleMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    if (!v.muted && v.volume === 0) {
+      v.volume = 0.5;
+      setVolume(0.5);
+    }
+    setMuted(v.muted);
+  };
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        skip(10);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        skip(-10);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        changeVolume(Math.min(1, (videoRef.current?.volume ?? 1) + 0.1));
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        changeVolume(Math.max(0, (videoRef.current?.volume ?? 0) - 0.1));
+      } else if (e.key === " " || e.key === "k") {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === "m") {
+        toggleMute();
+      }
     };
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -47,28 +161,21 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
     };
   }, [onClose]);
 
-  const togglePlay = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.paused) {
-      v.play();
-      setPlaying(true);
-    } else {
-      v.pause();
-      setPlaying(false);
-    }
-  };
-
-  const toggleMute = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setMuted(v.muted);
-  };
-
   const fullscreen = () => {
     containerRef.current?.requestFullscreen?.();
   };
+
+  const formatTime = (s: number) => {
+    if (!Number.isFinite(s) || s < 0) return "0:00";
+    const total = Math.floor(s);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const sec = total % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+      : `${m}:${String(sec).padStart(2, "0")}`;
+  };
+
 
   return (
     <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md animate-rise [animation-duration:300ms]">
@@ -127,6 +234,26 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
         </div>
 
         <div className="border-t border-white/10 bg-panel/80 backdrop-blur-xl">
+          {seekable && (
+            <div className="flex items-center gap-3 px-5 pt-4 sm:px-8">
+              <span className="w-12 shrink-0 text-right font-mono text-[11px] text-slate-400">
+                {formatTime(current)}
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={duration}
+                step={0.1}
+                value={Math.min(current, duration)}
+                onChange={(e) => seekTo(Number(e.target.value))}
+                aria-label="Avançar ou voltar o filme"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-aurora-2 [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+              />
+              <span className="w-12 shrink-0 font-mono text-[11px] text-slate-400">
+                {formatTime(duration)}
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-4 px-5 py-4 sm:px-8">
             <button
               onClick={togglePlay}
@@ -135,20 +262,56 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
             >
               {playing ? <Pause className="size-4 fill-ink" /> : <Play className="ml-0.5 size-4 fill-ink" />}
             </button>
-            <button
-              onClick={toggleMute}
-              aria-label={muted ? "Ativar som" : "Silenciar"}
-              className="text-slate-300 transition-colors hover:text-foreground"
-            >
-              {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-            </button>
+            {seekable && (
+              <>
+                <button
+                  onClick={() => skip(-10)}
+                  aria-label="Voltar 10 segundos"
+                  className="text-slate-300 transition-colors hover:text-foreground"
+                >
+                  <RotateCcw className="size-5" />
+                </button>
+                <button
+                  onClick={() => skip(10)}
+                  aria-label="Avançar 10 segundos"
+                  className="text-slate-300 transition-colors hover:text-foreground"
+                >
+                  <RotateCw className="size-5" />
+                </button>
+              </>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleMute}
+                aria-label={muted ? "Ativar som" : "Silenciar"}
+                className="text-slate-300 transition-colors hover:text-foreground"
+              >
+                {muted || volume === 0 ? (
+                  <VolumeX className="size-5" />
+                ) : volume < 0.5 ? (
+                  <Volume1 className="size-5" />
+                ) : (
+                  <Volume2 className="size-5" />
+                )}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={muted ? 0 : volume}
+                onChange={(e) => changeVolume(Number(e.target.value))}
+                aria-label="Volume"
+                className="h-1.5 w-24 cursor-pointer appearance-none rounded-full bg-white/15 accent-aurora-2 [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+              />
+            </div>
             <div className="flex-1 text-center font-mono text-xs text-slate-400">
               {channel.live ? (
                 <span className="rounded-md bg-live/15 px-2 py-1 font-bold text-live ring-1 ring-live/30">
                   AO VIVO
                 </span>
               ) : (
-                "stream hls"
+                "filme"
               )}
             </div>
             <button
