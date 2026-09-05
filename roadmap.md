@@ -17,3 +17,8 @@
 - [x] Séries agrupadas (temporada/episódio) com SeriesOverlay e hover com informações
 - [x] Contas MongoDB (vela_*): cadastro com WhatsApp, teste de 3 dias, bloqueio por aparelho, sessões em cookie
 - [x] Painel /admin: clientes, situação/vencimento, planos, InfinitePay ($handle) e webhook de renovação automática
+
+- [x] Login obrigatorio para carregar lista; vitrine de capas para visitantes
+- [x] WhatsApp + capas configuraveis no admin
+- [x] Menu com Series, Filmes, Lancamentos, Cinema, Ao vivo + Categorias
+- [x] Nova conexao MongoDB (MONGO_URL atualizada)
