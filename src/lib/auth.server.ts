@@ -1,6 +1,5 @@
 import { getRequest, setResponseHeader } from "@tanstack/react-start/server";
-import { ObjectId } from "mongodb";
-import { collections, ensureIndexes, type UserDoc } from "./db.server";
+import { collections, ensureIndexes, toObjectId, type UserDoc } from "./db.server";
 
 export const SESSION_COOKIE = "vela_session";
 const SESSION_DAYS = 30;
@@ -80,7 +79,7 @@ export async function currentUser(): Promise<UserDoc | null> {
   const { sessions, users } = await collections();
   const session = await sessions.findOne({ token });
   if (!session || session.expiresAt.getTime() < Date.now()) return null;
-  return users.findOne({ _id: new ObjectId(session.userId) } as never);
+  return users.findOne({ _id: await toObjectId(session.userId) } as never);
 }
 
 

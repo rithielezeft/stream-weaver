@@ -33,7 +33,7 @@ export const adminOverview = createServerFn({ method: "POST" })
       .parse(data ?? {}),
   )
   .handler(async ({ data }) => {
-    const { collections } = await import("./db.server");
+    const { collections, toObjectId } = await import("./db.server");
     const { requireAdmin } = await import("./auth.server");
     await requireAdmin();
     const { users, plans, settings, payments } = await collections();
@@ -125,7 +125,7 @@ export const adminSavePlan = createServerFn({ method: "POST" })
 export const adminDeletePlan = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ id: z.string() }).parse(data))
   .handler(async ({ data }) => {
-    const { collections } = await import("./db.server");
+    const { collections, toObjectId } = await import("./db.server");
     const { requireAdmin } = await import("./auth.server");
     await requireAdmin();
     const { plans } = await collections();
@@ -163,12 +163,11 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const { collections } = await import("./db.server");
+    const { collections, toObjectId } = await import("./db.server");
     const { requireAdmin } = await import("./auth.server");
-    const { ObjectId } = await import("mongodb");
     await requireAdmin();
     const { users, plans, devices } = await collections();
-    const _id = new ObjectId(data.userId);
+    const _id = await toObjectId(data.userId);
     const user = await users.findOne({ _id } as never);
     if (!user) throw new Error("Usuário não encontrado.");
 
