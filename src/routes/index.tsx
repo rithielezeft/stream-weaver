@@ -241,32 +241,7 @@ function Index() {
             )}
           </section>
 
-          {posters.length > 0 && (
-            <section className="mt-10">
-              <h2 className="text-lg font-bold text-foreground">Um gostinho do catálogo</h2>
-              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-8">
-                {posters.map((poster, index) => (
-                  <div
-                    key={`${poster.logo}-${index}`}
-                    className="group relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-ink/60"
-                    title={poster.name}
-                  >
-                    <img
-                      src={poster.logo}
-                      alt={poster.name}
-                      loading="lazy"
-                      className="size-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink to-transparent p-2">
-                      <p className="truncate text-[11px] font-semibold text-slate-200">
-                        {poster.name}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          <ShowcaseGrid posters={posters} whatsapp={whatsapp} />
         </main>
       ) : (
         <main className="relative z-10 mx-auto max-w-[1600px] px-6 pb-24">
