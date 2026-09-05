@@ -68,9 +68,7 @@ export const registerAccount = createServerFn({ method: "POST" })
       emailLower,
       whatsapp: data.whatsapp,
       passwordHash: await hashPassword(data.password),
-      role: ((await users.countDocuments({}, { limit: 1 })) === 0 ? "admin" : "user") as
-        | "admin"
-        | "user",
+      role: "user" as "admin" | "user",
       m3uUrl: data.m3uUrl,
       deviceId: data.deviceId,
       deviceIds: [data.deviceId],
