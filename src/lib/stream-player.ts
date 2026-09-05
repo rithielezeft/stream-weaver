@@ -188,7 +188,6 @@ export function attachStream(
       errored = true;
       // mpegts.js repassa (errorType, errorMessage) — errorType é o valor do enum.
       const errorType = typeof args[0] === "string" ? args[0] : String(args[0] ?? "");
-      console.debug("[ts] error", errorType);
       const isMedia =
         errorType === mpegts.ErrorTypes.MEDIA_ERROR || /media/i.test(errorType);
       // MPEG-TS falhou. Em URLs sem extensão ainda vale tentar a reprodução
@@ -285,7 +284,6 @@ export function attachStream(
       // Sem extensão: identifica o tipo real antes de escolher o motor —
       // adivinhar errado travava (stream TS ao vivo lido como manifesto HLS).
       const probed = await probeStreamKind(streamUrl);
-      console.debug("[probe] result", probed);
       if (destroyed) return;
       if (probed === "hls") await attachHls();
       else if (probed === "ts") await attachTs();
