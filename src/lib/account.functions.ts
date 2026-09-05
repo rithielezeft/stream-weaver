@@ -13,6 +13,7 @@ export interface AccountView {
   m3uUrl: string;
   expiresAt: string;
   daysLeft: number;
+  unlimited: boolean;
   createdAt: string;
 }
 
@@ -121,7 +122,10 @@ export const loginAccount = createServerFn({ method: "POST" })
         : { $set: update },
     );
     await createSession(String((user as { _id: unknown })._id));
-    return { ok: true, account: toAccountView(user) };
+    return {
+      ok: true,
+      account: toAccountView({ ...user, ...update } as typeof user),
+    };
   });
 
 export const logoutAccount = createServerFn({ method: "POST" }).handler(async () => {
