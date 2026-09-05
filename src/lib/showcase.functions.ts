@@ -57,7 +57,18 @@ export const adminSaveSupport = createServerFn({ method: "POST" })
  * continuam salvas.
  */
 export const adminImportShowcase = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({ url: z.string().url().max(4096) }).parse(data))
+  .inputValidator((data: unknown) => {
+    const parsed = z.object({ url: z.string().max(4096) }).parse(data);
+    let url = parsed.url.trim().replace(/^["'<]+|["'>]+$/g, "");
+    if (url && !/^https?:\/\//i.test(url)) url = `http://${url}`;
+    try {
+      // eslint-disable-next-line no-new
+      new URL(url);
+    } catch {
+      throw new Error("Endereço da lista inválido. Cole o link completo, começando com http:// ou https://.");
+    }
+    return { url };
+  })
   .handler(async ({ data }) => {
     const { collections, ensureIndexes } = await import("./db.server");
     const { requireAdmin } = await import("./auth.server");
