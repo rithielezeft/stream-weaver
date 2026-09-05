@@ -75,8 +75,13 @@ async function getClient(): Promise<MongoClient> {
   const url = process.env["MONGO_URL"];
   if (!url) throw new Error("MONGO_URL não configurado.");
   if (!clientPromise) {
-    clientPromise = new MongoClient(url, { serverSelectionTimeoutMS: 10000 })
-      .connect()
+    const moduleName = "mongodb";
+    clientPromise = import(/* @vite-ignore */ moduleName)
+      .then((mod) =>
+        new (mod as typeof import("mongodb")).MongoClient(url, {
+          serverSelectionTimeoutMS: 10000,
+        }).connect(),
+      )
       .catch((error) => {
         clientPromise = null;
         throw error;
