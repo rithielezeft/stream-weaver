@@ -45,8 +45,19 @@ function Index() {
     );
   }, [channels, search]);
 
-  const groups = useMemo(() => groupByCategory(filtered), [filtered]);
+  const groups = useMemo(() => sortGroups(groupByCategory(filtered)), [filtered]);
   const featured = filtered[0] ?? channels[0] ?? null;
+
+  // Mostra as primeiras categorias na hora e vai revelando o resto em segundo
+  // plano, para listas gigantes não travarem a tela logo após a importação.
+  const [rowsVisible, setRowsVisible] = useState(4);
+  useEffect(() => setRowsVisible(4), [filtered]);
+  useEffect(() => {
+    if (rowsVisible >= groups.length) return;
+    const id = setTimeout(() => setRowsVisible((v) => v + 4), 300);
+    return () => clearTimeout(id);
+  }, [rowsVisible, groups.length]);
+
 
   const toggleList = (id: string) =>
     setMyList((prev) => {
