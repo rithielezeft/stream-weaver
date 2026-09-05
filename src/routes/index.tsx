@@ -118,9 +118,15 @@ function Index() {
               Nenhum canal encontrado para “{search}”.
             </p>
           )}
-          {groups.map(([name, items]) => (
+          {groups.slice(0, rowsVisible).map(([name, items]) => (
             <ChannelRow key={name} title={name} channels={items} onPlay={setCurrent} />
           ))}
+          {rowsVisible < groups.length && (
+            <p className="py-6 text-center font-mono text-xs text-slate-500">
+              Carregando mais categorias… ({rowsVisible}/{groups.length})
+            </p>
+          )}
+
         </section>
       </main>
 
