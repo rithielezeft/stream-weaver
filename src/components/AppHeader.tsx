@@ -1,4 +1,5 @@
 import { Search, Plus, ChevronDown } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 interface AppHeaderProps {
