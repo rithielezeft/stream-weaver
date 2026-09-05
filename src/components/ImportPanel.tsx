@@ -163,6 +163,29 @@ export function ImportPanel({ onImport, totalChannels, totalCategories, saved, o
         Cole a URL, o conteúdo da lista ou selecione um arquivo .m3u para carregar seus canais.
       </p>
 
+      {saved && (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-ink/50 px-3 py-2">
+          <span className="min-w-0 text-[11px] leading-tight text-slate-400">
+            Lista salva neste dispositivo: <span className="text-slate-200">{saved.source}</span>
+            <span className="block font-mono text-[10px] text-slate-500">
+              {new Date(saved.savedAt).toLocaleString("pt-BR")}
+            </span>
+          </span>
+          {onClearSaved && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onClearSaved}
+              className="h-auto shrink-0 rounded-lg px-2 py-1 text-[11px] text-slate-400 hover:text-destructive"
+            >
+              Remover
+            </Button>
+          )}
+        </div>
+      )}
+
+
+
       <div className="mt-4 flex gap-1 rounded-xl bg-ink/60 p-1 text-xs font-medium">
         <Button type="button" variant="ghost" className={tabCls("url")} onClick={() => setMode("url")}>
           <span className="inline-flex items-center gap-1"><Link2 className="size-3" /> URL</span>
