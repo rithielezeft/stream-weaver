@@ -194,3 +194,58 @@ export const startCheckout = createServerFn({ method: "POST" })
     });
     return { url: buildInfinitePayLink(handle, plan.name, plan.price, orderId) };
   });
+
+/** Resultado da vinculação de uma lista a uma conta. */
+export type ClaimResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
+/**
+ * Cada lista M3U pertence a uma única conta. Se outra conta já usou a mesma
+ * lista, pedimos que o cliente renove o acesso dele em vez de liberar de novo.
+ */
+export const claimPlaylist = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        fingerprint: z.string().trim().min(6).max(200),
+        source: z.string().trim().max(400).default(""),
+        channels: z.number().int().nonnegative().default(0),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }): Promise<ClaimResult> => {
+    const { collections, ensureIndexes } = await import("./db.server");
+    const { currentUser } = await import("./auth.server");
+    const user = await currentUser();
+    if (!user) return { ok: false, message: "Faça login para carregar sua lista." };
+    await ensureIndexes();
+    const { playlistClaims } = await collections();
+    const userId = String((user as { _id: unknown })._id);
+    const now = new Date();
+    const existing = await playlistClaims.findOne({ fingerprint: data.fingerprint });
+    if (existing && existing.userId !== userId) {
+      return {
+        ok: false,
+        message:
+          "Esta lista já está vinculada a outra conta. Renove o acesso daquela conta ou fale com o suporte para liberar.",
+      };
+    }
+    if (existing) {
+      await playlistClaims.updateOne(
+        { fingerprint: data.fingerprint },
+        { $set: { updatedAt: now, source: data.source, channels: data.channels } },
+      );
+      return { ok: true };
+    }
+    await playlistClaims.insertOne({
+      fingerprint: data.fingerprint,
+      userId,
+      username: user.username,
+      source: data.source,
+      channels: data.channels,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return { ok: true };
+  });

@@ -52,15 +52,22 @@ export async function createSession(userId: string): Promise<string> {
   const token = randomHex(32);
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400_000);
   await sessions.insertOne({ token, userId, createdAt: new Date(), expiresAt });
-  setResponseHeader(
-    "set-cookie",
-    `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=${SESSION_DAYS * 86400}`,
-  );
+  setResponseHeader("set-cookie", `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; ${sameSiteFlags()}; Max-Age=${SESSION_DAYS * 86400}`);
   return token;
 }
 
+/**
+ * O site roda dentro de um quadro (preview/publicado embutido). Nesse caso o
+ * navegador só envia o cookie com SameSite=None; Secure. Em http local usamos Lax.
+ */
+function sameSiteFlags(): string {
+  const url = getRequest()?.url ?? "";
+  return url.startsWith("https://") ? "SameSite=None; Secure; Partitioned" : "SameSite=Lax";
+}
+
 export function clearSessionCookie(): void {
-  setResponseHeader("set-cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  setResponseHeader("set-cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; ${sameSiteFlags()}; Max-Age=0`);
+
 }
 
 export function readSessionToken(): string | null {

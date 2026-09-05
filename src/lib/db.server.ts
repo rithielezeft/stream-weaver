@@ -64,6 +64,16 @@ export interface PaymentDoc {
   raw?: unknown;
 }
 
+export interface PlaylistClaimDoc {
+  fingerprint: string;
+  userId: string;
+  username: string;
+  source: string;
+  channels: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface SettingsDoc {
   key: string;
   value: unknown;
@@ -102,6 +112,7 @@ export async function collections(): Promise<{
   devices: Collection<DeviceDoc>;
   payments: Collection<PaymentDoc>;
   settings: Collection<SettingsDoc>;
+  playlistClaims: Collection<PlaylistClaimDoc>;
 }> {
   const db = await getDb();
   return {
@@ -111,6 +122,7 @@ export async function collections(): Promise<{
     devices: db.collection<DeviceDoc>("vela_devices"),
     payments: db.collection<PaymentDoc>("vela_payments"),
     settings: db.collection<SettingsDoc>("vela_settings"),
+    playlistClaims: db.collection<PlaylistClaimDoc>("vela_playlist_claims"),
   };
 }
 
@@ -129,6 +141,7 @@ export async function ensureIndexes(): Promise<void> {
     c.payments.createIndex({ orderId: 1 }, { unique: true }),
     c.plans.createIndex({ id: 1 }, { unique: true }),
     c.settings.createIndex({ key: 1 }, { unique: true }),
+    c.playlistClaims.createIndex({ fingerprint: 1 }, { unique: true }),
   ]);
   ensured = true;
 }

@@ -12,7 +12,7 @@ import { buildCatalog, groupCatalog, type CatalogItem, type Series } from "@/lib
 import { sortGroups } from "@/lib/categories";
 import { matchesSection, type SectionId } from "@/lib/sections";
 import { clearPlaylist, loadPlaylist, savePlaylist } from "@/lib/playlist-store";
-import { getMyAccount, type AccountView } from "@/lib/account.functions";
+import { claimPlaylist, getMyAccount, type AccountView } from "@/lib/account.functions";
 import { getSiteInfo, type ShowcasePoster } from "@/lib/showcase.functions";
 
 export const Route = createFileRoute("/")({
@@ -37,8 +37,20 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+/** Impressão digital simples da lista, para saber se outra conta já a usa. */
+function playlistFingerprint(list: Channel[], source: string): string {
+  const base = `${source}|${list.length}|${list[0]?.url ?? ""}|${list[list.length - 1]?.url ?? ""}`;
+  let h1 = 0x811c9dc5;
+  for (let i = 0; i < base.length; i += 1) {
+    h1 ^= base.charCodeAt(i);
+    h1 = Math.imul(h1, 0x01000193);
+  }
+  return `fp_${(h1 >>> 0).toString(16)}_${base.length}_${list.length}`;
+}
+
 function Index() {
   const me = useServerFn(getMyAccount);
+  const claim = useServerFn(claimPlaylist);
   const siteInfo = useServerFn(getSiteInfo);
 
   const [account, setAccount] = useState<AccountView | null>(null);
@@ -95,7 +107,17 @@ function Index() {
     };
   }, [signedIn]);
 
-  const handleImport = (list: Channel[], source: string) => {
+  const [claimError, setClaimError] = useState("");
+
+  const handleImport = async (list: Channel[], source: string) => {
+    setClaimError("");
+    const res = await claim({
+      data: { fingerprint: playlistFingerprint(list, source), source, channels: list.length },
+    });
+    if (!res.ok) {
+      setClaimError(res.message);
+      return;
+    }
     setChannels(list);
     setSaved({ source, savedAt: Date.now() });
     void savePlaylist(list, source);
@@ -248,6 +270,54 @@ function Index() {
         </main>
       ) : (
         <main className="relative z-10 mx-auto max-w-[1600px] px-6 pb-24">
+          {account && (
+            <section className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/10 bg-panel/60 p-5">
+              <div>
+                <p className="font-mono text-[11px] uppercase text-aurora-2">Situação da conta</p>
+                <p className="mt-1 text-sm font-bold text-foreground">
+                  {account.status === "trial"
+                    ? `Teste grátis — ${Math.max(0, account.daysLeft)} dia(s) restantes`
+                    : account.status === "active"
+                      ? `${account.planName ?? "Plano ativo"} — ${Math.max(0, account.daysLeft)} dia(s)`
+                      : account.status === "blocked"
+                        ? "Conta bloqueada"
+                        : "Acesso vencido"}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {account.status === "trial"
+                    ? "Conecte aqui a sua lista e ative um plano quando quiser continuar."
+                    : "Você pode trocar de plano ou renovar a qualquer momento."}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Link
+                  to="/conta"
+                  className="rounded-full bg-gradient-to-r from-aurora-1 via-aurora-2 to-aurora-3 px-5 py-2.5 text-xs font-bold text-ink"
+                >
+                  {account.status === "trial" || account.status === "expired"
+                    ? "Ativar plano"
+                    : "Mudar plano"}
+                </Link>
+                {whatsLink && (
+                  <a
+                    href={whatsLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full border border-white/15 px-5 py-2.5 text-xs font-semibold text-slate-100 hover:bg-white/5"
+                  >
+                    Falar no WhatsApp
+                  </a>
+                )}
+              </div>
+            </section>
+          )}
+
+          {claimError && (
+            <p className="mt-4 rounded-2xl border border-live/40 bg-live/10 px-4 py-3 text-sm text-live">
+              {claimError}
+            </p>
+          )}
+
           <section className="grid gap-6 pt-6 lg:grid-cols-3">
             {featured ? (
               <Hero
