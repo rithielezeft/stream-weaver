@@ -66,6 +66,7 @@ function AdminPage() {
   const [showcaseCount, setShowcaseCount] = useState(0);
   const [showcaseInfo, setShowcaseInfo] = useState("");
   const [newPlan, setNewPlan] = useState({ id: "", name: "", days: 30, price: 0, description: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError("");
