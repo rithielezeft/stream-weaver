@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize, X, Loader2 } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Volume2,
+  Volume1,
+  VolumeX,
+  Maximize,
+  X,
+  Loader2,
+  RotateCcw,
+  RotateCw,
+} from "lucide-react";
 import type { Channel } from "@/lib/m3u";
 import { attachStream, STREAM_ERROR_MESSAGES } from "@/lib/stream-player";
 
