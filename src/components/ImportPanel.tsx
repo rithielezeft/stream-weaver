@@ -8,10 +8,13 @@ import { downloadM3U } from "@/lib/m3u-import.functions";
 type Mode = "url" | "text" | "file";
 
 interface ImportPanelProps {
-  onImport: (channels: Channel[]) => void;
+  onImport: (channels: Channel[], source: string) => void;
   totalChannels: number;
   totalCategories: number;
+  saved?: { source: string; savedAt: number } | null;
+  onClearSaved?: () => void;
 }
+
 
 const SAMPLE = `#EXTM3U
 #EXTINF:-1 tvg-logo="https://exemplo.com/logo.png" group-title="Filmes",Canal 042
