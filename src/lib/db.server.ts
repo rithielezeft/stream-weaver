@@ -1,4 +1,4 @@
-import { MongoClient, type Collection, type Db } from "mongodb";
+import type { MongoClient, Collection, Db } from "mongodb";
 
 /**
  * Conexão única com o MongoDB (MONGO_URL). As coleções usam o prefixo
@@ -75,8 +75,13 @@ async function getClient(): Promise<MongoClient> {
   const url = process.env["MONGO_URL"];
   if (!url) throw new Error("MONGO_URL não configurado.");
   if (!clientPromise) {
-    clientPromise = new MongoClient(url, { serverSelectionTimeoutMS: 10000 })
-      .connect()
+    const moduleName = "mongodb";
+    clientPromise = import(/* @vite-ignore */ moduleName)
+      .then((mod) =>
+        new (mod as typeof import("mongodb")).MongoClient(url, {
+          serverSelectionTimeoutMS: 10000,
+        }).connect(),
+      )
       .catch((error) => {
         clientPromise = null;
         throw error;
@@ -126,4 +131,16 @@ export async function ensureIndexes(): Promise<void> {
     c.settings.createIndex({ key: 1 }, { unique: true }),
   ]);
   ensured = true;
+}
+
+/** Carrega o driver em tempo de execução (evita empacotá-lo no bundle do worker). */
+export async function loadMongo(): Promise<typeof import("mongodb")> {
+  const moduleName = "mongodb";
+  return (await import(/* @vite-ignore */ moduleName)) as typeof import("mongodb");
+}
+
+/** Converte uma string em ObjectId sem importar o driver estaticamente. */
+export async function toObjectId(id: string): Promise<unknown> {
+  const { ObjectId } = await loadMongo();
+  return new ObjectId(id);
 }

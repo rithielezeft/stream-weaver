@@ -105,7 +105,8 @@ export const loginAccount = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => loginSchema.parse(data))
   .handler(async ({ data }): Promise<AccountResult> => {
     const { collections } = await import("./db.server");
-    const { verifyPassword, createSession } = await import("./auth.server");
+    const { verifyPassword, createSession, ensureAdminSeed } = await import("./auth.server");
+    await ensureAdminSeed();
     const { toAccountView } = await import("./account.server");
     const { users } = await collections();
     const id = data.email.toLowerCase();

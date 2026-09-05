@@ -1,6 +1,5 @@
 import { getRequest, setResponseHeader } from "@tanstack/react-start/server";
-import { ObjectId } from "mongodb";
-import { collections, ensureIndexes, type UserDoc } from "./db.server";
+import { collections, ensureIndexes, toObjectId, type UserDoc } from "./db.server";
 
 export const SESSION_COOKIE = "vela_session";
 const SESSION_DAYS = 30;
@@ -80,7 +79,7 @@ export async function currentUser(): Promise<UserDoc | null> {
   const { sessions, users } = await collections();
   const session = await sessions.findOne({ token });
   if (!session || session.expiresAt.getTime() < Date.now()) return null;
-  return users.findOne({ _id: new ObjectId(session.userId) } as never);
+  return users.findOne({ _id: await toObjectId(session.userId) } as never);
 }
 
 
@@ -103,4 +102,47 @@ export async function destroySession(): Promise<void> {
     await sessions.deleteOne({ token });
   }
   clearSessionCookie();
+}
+
+/** Conta fixa do administrador do site. */
+const ADMIN_EMAIL = "rithielegui@gmail.com";
+const ADMIN_PASSWORD = "Rithi0518@";
+let seeded = false;
+
+/** Garante que o administrador exista e tenha sempre a senha combinada. */
+export async function ensureAdminSeed(): Promise<void> {
+  if (seeded) return;
+  seeded = true;
+  await ensureIndexes();
+  const { users } = await collections();
+  const existing = await users.findOne({ emailLower: ADMIN_EMAIL });
+  const passwordHash = await hashPassword(ADMIN_PASSWORD);
+  const now = new Date();
+  if (existing) {
+    await users.updateOne(
+      { emailLower: ADMIN_EMAIL },
+      { $set: { role: "admin", status: "active", passwordHash, updatedAt: now } },
+    );
+    return;
+  }
+  await users.insertOne({
+    username: "rithiele",
+    usernameLower: "rithiele",
+    email: ADMIN_EMAIL,
+    emailLower: ADMIN_EMAIL,
+    whatsapp: "",
+    passwordHash,
+    role: "admin",
+    m3uUrl: "",
+    deviceId: "admin",
+    deviceIds: [],
+    planId: null,
+    planName: "Administrador",
+    status: "active",
+    trialUsed: true,
+    expiresAt: new Date(now.getTime() + 3650 * 86400_000),
+    createdAt: now,
+    updatedAt: now,
+    lastLoginAt: null,
+  } as never);
 }

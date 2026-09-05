@@ -34,8 +34,7 @@ export const Route = createFileRoute("/api/public/infinitepay-webhook")({
           );
         if (!orderId) return new Response("Missing order", { status: 400 });
 
-        const { collections } = await import("@/lib/db.server");
-        const { ObjectId } = await import("mongodb");
+        const { collections, toObjectId } = await import("@/lib/db.server");
         const { payments, users, plans } = await collections();
         const payment = await payments.findOne({ orderId });
         if (!payment) return new Response("Unknown order", { status: 404 });
@@ -47,10 +46,10 @@ export const Route = createFileRoute("/api/public/infinitepay-webhook")({
 
         const plan = await plans.findOne({ id: payment.planId });
         const days = plan?.days ?? 30;
-        const user = await users.findOne({ _id: new ObjectId(payment.userId) } as never);
+        const user = await users.findOne({ _id: await toObjectId(payment.userId) } as never);
         if (user) {
           const base = Math.max(new Date(user.expiresAt).getTime(), Date.now());
-          await users.updateOne({ _id: new ObjectId(payment.userId) } as never, {
+          await users.updateOne({ _id: await toObjectId(payment.userId) } as never, {
             $set: {
               planId: payment.planId,
               planName: plan?.name ?? user.planName,

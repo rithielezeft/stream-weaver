@@ -70,7 +70,7 @@ export const adminOverview = createServerFn({ method: "POST" })
       };
     });
 
-    const [total, active, expired, trial, planDocs, handleDoc, paid] = await Promise.all([
+    const [total, active, expired, trial, planDocs, handleDoc, paid, whatsDoc, postersDoc, sourceDoc] = await Promise.all([
       users.countDocuments({}),
       users.countDocuments({ expiresAt: { $gt: now }, status: { $ne: "blocked" } }),
       users.countDocuments({ expiresAt: { $lte: now } }),
@@ -78,6 +78,9 @@ export const adminOverview = createServerFn({ method: "POST" })
       plans.find({}).sort({ price: 1 }).toArray(),
       settings.findOne({ key: "infinitepay_handle" }),
       payments.countDocuments({ status: "paid" }),
+      settings.findOne({ key: "support_whatsapp" }),
+      settings.findOne({ key: "showcase_posters" }),
+      settings.findOne({ key: "showcase_source" }),
     ]);
 
     return {
@@ -92,6 +95,9 @@ export const adminOverview = createServerFn({ method: "POST" })
         active: p.active,
       })) as AdminPlan[],
       infinitepayHandle: String(handleDoc?.value ?? ""),
+      supportWhatsapp: String(whatsDoc?.value ?? ""),
+      showcaseCount: Array.isArray(postersDoc?.value) ? postersDoc.value.length : 0,
+      showcaseSource: (sourceDoc?.value as { url?: string; importedAt?: string } | undefined) ?? null,
     };
   });
 
@@ -163,12 +169,11 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const { collections } = await import("./db.server");
+    const { collections, toObjectId } = await import("./db.server");
     const { requireAdmin } = await import("./auth.server");
-    const { ObjectId } = await import("mongodb");
     await requireAdmin();
     const { users, plans, devices } = await collections();
-    const _id = new ObjectId(data.userId);
+    const _id = await toObjectId(data.userId);
     const user = await users.findOne({ _id } as never);
     if (!user) throw new Error("Usuário não encontrado.");
 
