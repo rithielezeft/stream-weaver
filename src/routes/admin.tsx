@@ -283,10 +283,14 @@ function AdminPage() {
               </div>
             ))}
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <p className="mt-5 text-xs text-slate-400">
+            {editingId ? `Editando o plano "${editingId}".` : "Criar um novo plano:"}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
             <input
               className={field}
               placeholder="código (ex.: mensal)"
+              disabled={Boolean(editingId)}
               value={newPlan.id}
               onChange={(e) => setNewPlan({ ...newPlan, id: e.target.value })}
             />
