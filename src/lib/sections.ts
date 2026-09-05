@@ -33,7 +33,7 @@ export function matchesSection(section: SectionId, item: CatalogItem): boolean {
   const group = item.group ?? "";
   const g = normalizeCategory(group);
   if (section === "series") return item.kind === "series" || g.includes("SERIE");
-  if (item.kind === "series") return section === "series";
+  if (item.kind === "series") return false;
 
   const url = item.channel.url;
   if (section === "lancamentos") return g.includes("LANCAMENTO");
