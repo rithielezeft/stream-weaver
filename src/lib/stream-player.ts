@@ -190,11 +190,18 @@ export function attachStream(
       const errorType = typeof args[0] === "string" ? args[0] : String(args[0] ?? "");
       const isMedia =
         errorType === mpegts.ErrorTypes.MEDIA_ERROR || /media/i.test(errorType);
-      // MPEG-TS falhou. Em URLs sem extensão ainda vale tentar a reprodução
-      // nativa (pode ser um MP4 servido sem extensão); nos outros casos, erro.
-      teardownCurrentPlayer();
-      if (kind === "unknown" && !isMedia) attachNative();
-      else cb.onError(isMedia ? "media" : "network");
+      if (isMedia) {
+        cb.onError("media");
+        return;
+      }
+      // Servidores de IPTV oscilam: uma retentativa antes de desistir.
+      if (tsRetries < 1) {
+        tsRetries++;
+        teardownCurrentPlayer();
+        void attachTs();
+        return;
+      }
+      cb.onError("network");
     });
   };
 
