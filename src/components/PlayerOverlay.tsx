@@ -28,6 +28,11 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
   const [muted, setMuted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [volume, setVolume] = useState(1);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const seekable = duration > 0 && Number.isFinite(duration);
+
 
   useEffect(() => {
     const video = videoRef.current;
