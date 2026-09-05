@@ -59,11 +59,18 @@ export async function createSession(userId: string): Promise<string> {
 /**
  * O site roda dentro de um quadro (preview/publicado embutido). Nesse caso o
  * navegador só envia o cookie com SameSite=None; Secure. Em http local usamos Lax.
+ * Atrás de proxy a URL interna pode ser http, então olhamos também os cabeçalhos.
  */
 function sameSiteFlags(): string {
-  const url = getRequest()?.url ?? "";
-  return url.startsWith("https://") ? "SameSite=None; Secure" : "SameSite=Lax";
+  const req = getRequest();
+  const url = req?.url ?? "";
+  const proto = req?.headers.get("x-forwarded-proto") ?? "";
+  const origin = req?.headers.get("origin") ?? req?.headers.get("referer") ?? "";
+  const secure =
+    url.startsWith("https://") || proto.includes("https") || origin.startsWith("https://");
+  return secure ? "SameSite=None; Secure" : "SameSite=Lax";
 }
+
 
 export function clearSessionCookie(): void {
   setResponseHeader("set-cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; ${sameSiteFlags()}; Max-Age=0`);

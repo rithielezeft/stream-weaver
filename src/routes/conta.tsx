@@ -8,6 +8,8 @@ import {
   registerAccount,
   listActivePlans,
   startCheckout,
+  saveMyPlaylistUrl,
+
   type AccountView,
 } from "@/lib/account.functions";
 import { getDeviceId } from "@/lib/device-id";
@@ -58,6 +60,11 @@ function ContaPage() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const saveList = useServerFn(saveMyPlaylistUrl);
+  const [listUrl, setListUrl] = useState("");
+  const [savingList, setSavingList] = useState(false);
+  const [listMsg, setListMsg] = useState("");
+
 
   const [form, setForm] = useState({
     username: "",
@@ -71,7 +78,9 @@ function ContaPage() {
     void Promise.all([me(), plansFn()])
       .then(([acc, pl]) => {
         setAccount(acc);
+        setListUrl(acc?.m3uUrl ?? "");
         setPlans(pl);
+
       })
       .catch(() => undefined)
       .finally(() => setLoading(false));
@@ -87,7 +96,11 @@ function ContaPage() {
         mode === "register"
           ? await register({ data: { ...form, deviceId } })
           : await login({ data: { email: form.email, password: form.password, deviceId } });
-      if (res.ok) setAccount(res.account);
+      if (res.ok) {
+        setAccount(res.account);
+        setListUrl(res.account.m3uUrl ?? "");
+      }
+
       else setError(res.message);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível continuar.");
@@ -181,6 +194,50 @@ function ContaPage() {
                 </button>
               </div>
             </div>
+
+            {account.role !== "admin" && (
+              <div className="rounded-3xl border border-white/10 bg-panel/60 p-8">
+                <h2 className="text-xl font-bold text-foreground">Minha lista M3U</h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Guarde aqui o link da sua lista. Depois é só abrir o catálogo para assistir.
+                </p>
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <input
+                    value={listUrl}
+                    onChange={(e) => setListUrl(e.target.value)}
+                    placeholder="http://servidor.com/get.php?username=...&type=m3u_plus"
+                    className={field}
+                  />
+                  <button
+                    type="button"
+                    disabled={savingList}
+                    onClick={async () => {
+                      setSavingList(true);
+                      setListMsg("");
+                      try {
+                        await saveList({ data: { m3uUrl: listUrl.trim() } });
+                        setListMsg("Lista salva na sua conta.");
+                      } catch {
+                        setListMsg("Não foi possível salvar agora.");
+                      } finally {
+                        setSavingList(false);
+                      }
+                    }}
+                    className="rounded-full bg-aurora-2 px-6 py-3 text-xs font-bold text-ink disabled:opacity-60"
+                  >
+                    {savingList ? "Salvando…" : "Salvar lista"}
+                  </button>
+                </div>
+                {listMsg && <p className="mt-3 text-xs text-aurora-2">{listMsg}</p>}
+                <Link
+                  to="/"
+                  className="mt-4 inline-block rounded-full border border-white/15 px-5 py-2 text-xs font-semibold text-slate-100 hover:bg-white/5"
+                >
+                  Abrir catálogo e carregar a lista
+                </Link>
+              </div>
+            )}
+
 
             {account.role !== "admin" && plans.length > 0 && (
               <div className="rounded-3xl border border-white/10 bg-panel/60 p-8">
