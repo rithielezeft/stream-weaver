@@ -36,6 +36,37 @@ function Index() {
   const [search, setSearch] = useState("");
   const [current, setCurrent] = useState<Channel | null>(null);
   const [myList, setMyList] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState<{ source: string; savedAt: number } | null>(null);
+  const [restoring, setRestoring] = useState(true);
+
+  // Recupera a lista guardada no dispositivo do cliente.
+  useEffect(() => {
+    let active = true;
+    void loadPlaylist().then((data) => {
+      if (!active) return;
+      if (data) {
+        setChannels(data.channels);
+        setSaved({ source: data.source, savedAt: data.savedAt });
+      }
+      setRestoring(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleImport = (list: Channel[], source: string) => {
+    setChannels(list);
+    setSaved({ source, savedAt: Date.now() });
+    void savePlaylist(list, source);
+  };
+
+  const handleClearSaved = () => {
+    setChannels([]);
+    setSaved(null);
+    void clearPlaylist();
+  };
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
