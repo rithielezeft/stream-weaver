@@ -141,7 +141,9 @@ function ContaPage() {
                 <div>
                   <dt className="font-mono text-[10px] uppercase text-slate-500">Situação</dt>
                   <dd className="text-sm font-bold">
-                    {account.status === "expired"
+                    {account.unlimited
+                      ? "Ativo — ilimitado"
+                      : account.status === "expired"
                       ? "Vencido"
                       : account.status === "blocked"
                         ? "Bloqueado"
@@ -150,12 +152,14 @@ function ContaPage() {
                           : `Ativo — ${account.daysLeft} dia(s)`}
                   </dd>
                 </div>
-                <div className="sm:col-span-2">
-                  <dt className="font-mono text-[10px] uppercase text-slate-500">Vence em</dt>
-                  <dd className="text-sm">
-                    {new Date(account.expiresAt).toLocaleString("pt-BR")}
-                  </dd>
-                </div>
+                {!account.unlimited && (
+                  <div className="sm:col-span-2">
+                    <dt className="font-mono text-[10px] uppercase text-slate-500">Vence em</dt>
+                    <dd className="text-sm">
+                      {new Date(account.expiresAt).toLocaleString("pt-BR")}
+                    </dd>
+                  </div>
+                )}
               </dl>
               <div className="mt-6 flex gap-3">
                 {account.role === "admin" && (
@@ -178,7 +182,7 @@ function ContaPage() {
               </div>
             </div>
 
-            {plans.length > 0 && (
+            {account.role !== "admin" && plans.length > 0 && (
               <div className="rounded-3xl border border-white/10 bg-panel/60 p-8">
                 <h2 className="text-xl font-bold text-foreground">Planos</h2>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -269,11 +273,12 @@ function ContaPage() {
             </form>
 
             <button
+              type="button"
               onClick={() => {
                 setMode(mode === "register" ? "login" : "register");
                 setError("");
               }}
-              className="mt-4 text-xs text-slate-400 hover:text-aurora-2"
+              className="mt-3 w-full rounded-full border border-aurora-2/50 bg-aurora-2/10 py-3 text-sm font-bold text-aurora-2 transition-colors hover:bg-aurora-2/20"
             >
               {mode === "register"
                 ? "Já tenho conta — entrar"

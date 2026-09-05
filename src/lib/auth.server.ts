@@ -62,7 +62,7 @@ export async function createSession(userId: string): Promise<string> {
  */
 function sameSiteFlags(): string {
   const url = getRequest()?.url ?? "";
-  return url.startsWith("https://") ? "SameSite=None; Secure; Partitioned" : "SameSite=Lax";
+  return url.startsWith("https://") ? "SameSite=None; Secure" : "SameSite=Lax";
 }
 
 export function clearSessionCookie(): void {
@@ -97,8 +97,11 @@ export async function requireUser(): Promise<UserDoc> {
 }
 
 export async function requireAdmin(): Promise<UserDoc> {
+  await ensureAdminSeed();
   const user = await requireUser();
-  if (user.role !== "admin") throw new Error("Acesso restrito ao administrador.");
+  if (user.emailLower !== ADMIN_EMAIL || user.role !== "admin") {
+    throw new Error("Acesso restrito ao administrador.");
+  }
   return user;
 }
 
@@ -128,7 +131,17 @@ export async function ensureAdminSeed(): Promise<void> {
   if (existing) {
     await users.updateOne(
       { emailLower: ADMIN_EMAIL },
-      { $set: { role: "admin", status: "active", passwordHash, updatedAt: now } },
+      {
+        $set: {
+          role: "admin",
+          status: "active",
+          planId: null,
+          planName: "Administrador ilimitado",
+          expiresAt: new Date("9999-12-31T23:59:59.999Z"),
+          passwordHash,
+          updatedAt: now,
+        },
+      },
     );
     return;
   }
@@ -144,10 +157,10 @@ export async function ensureAdminSeed(): Promise<void> {
     deviceId: "admin",
     deviceIds: [],
     planId: null,
-    planName: "Administrador",
+    planName: "Administrador ilimitado",
     status: "active",
     trialUsed: true,
-    expiresAt: new Date(now.getTime() + 3650 * 86400_000),
+    expiresAt: new Date("9999-12-31T23:59:59.999Z"),
     createdAt: now,
     updatedAt: now,
     lastLoginAt: null,
