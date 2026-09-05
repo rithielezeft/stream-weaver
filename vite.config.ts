@@ -14,7 +14,10 @@ export default defineConfig({
   },
   vite: {
     resolve: {
-      alias: [{ find: /^punycode\/$/, replacement: "punycode" }],
+      alias: [
+        { find: /^punycode\/$/, replacement: new URL("./src/shims/punycode.ts", import.meta.url).pathname },
+        { find: /^node:punycode$/, replacement: new URL("./src/shims/punycode.ts", import.meta.url).pathname },
+      ],
     },
   },
 });
