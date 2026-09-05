@@ -147,20 +147,20 @@ export function attachStream(
   };
 
   const attachNative = () => {
-    console.debug("[native] attach");
     nativeActive = true;
     video.src = streamUrl;
     video.play().catch(() => {});
   };
 
   const attachTs = async () => {
-    console.debug("[ts] attach");
     const mpegtsModule = await import("mpegts.js");
     if (destroyed) return;
     const mpegts = mpegtsModule.default;
 
     if (!mpegts.isSupported()) {
-      attachNative();
+      // <video> nativo não decodifica MPEG-TS: erro honesto em vez de falha
+      // genérica tentando reproduzir direto.
+      cb.onError("unsupported");
       return;
     }
 
