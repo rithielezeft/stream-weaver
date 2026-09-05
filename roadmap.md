@@ -10,3 +10,6 @@
 - [x] URLs sem extensão: probe de content-type/bytes antes de escolher o motor (hls.js / mpegts.js / nativo) — sem header Range (servidores IPTV respondem 416)
 - [x] Bug: importação de lista (arquivo/texto/URL) travando — era build quebrado; testado e funcionando
 - [x] Importação real: download de URL pelo servidor, arquivo com seleção/progresso, limites e catálogo sem dados fictícios
+- [x] Categorias prioritárias (LANÇAMENTOS LEGENDADOS, CINEMA, TERROR, DRAMA, UHD 4K, BRASILEIRÃO, SPORTS WORLD, NOTÍCIAS), "Ver todos"/"Carregar mais" e submenu de categorias
+- [x] Lista salva no dispositivo (IndexedDB, `src/lib/playlist-store.ts`) e restaurada ao abrir o site
+- [x] Filmes (VOD .mp4): relay agora repassa `content-range`/`accept-ranges` — sem isso o navegador abortava a reprodução

@@ -127,12 +127,16 @@ export const Route = createFileRoute("/api/public/stream-proxy")({
           // Mídia (segmentos, MPEG-TS, MP4): repassa em streaming.
           const headers = new Headers({ "cache-control": "no-store" });
           if (contentType) headers.set("content-type", contentType);
+          // Sem estes cabeçalhos o navegador não consegue buscar/avançar em
+          // arquivos MP4 (VOD) e aborta a reprodução.
+          headers.set("accept-ranges", upstream.headers.get("accept-ranges") ?? "bytes");
+          const contentRange = upstream.headers.get("content-range");
+          if (contentRange) headers.set("content-range", contentRange);
           if (!upstream.headers.get("content-encoding")) {
             const len = upstream.headers.get("content-length");
             if (len) headers.set("content-length", len);
-            const acceptRanges = upstream.headers.get("accept-ranges");
-            if (acceptRanges) headers.set("accept-ranges", acceptRanges);
           }
+
           const stream = new ReadableStream<Uint8Array>({
             start(controller) {
               controller.enqueue(first.value);

@@ -8,10 +8,13 @@ import { downloadM3U } from "@/lib/m3u-import.functions";
 type Mode = "url" | "text" | "file";
 
 interface ImportPanelProps {
-  onImport: (channels: Channel[]) => void;
+  onImport: (channels: Channel[], source: string) => void;
   totalChannels: number;
   totalCategories: number;
+  saved?: { source: string; savedAt: number } | null;
+  onClearSaved?: () => void;
 }
+
 
 const SAMPLE = `#EXTM3U
 #EXTINF:-1 tvg-logo="https://exemplo.com/logo.png" group-title="Filmes",Canal 042
@@ -19,7 +22,7 @@ https://cdn.exemplo.com/canal042/index.m3u8`;
 const MAX_FILE_BYTES = 550 * 1024 * 1024;
 const LIMIT_LABEL = "550 MB";
 
-export function ImportPanel({ onImport, totalChannels, totalCategories }: ImportPanelProps) {
+export function ImportPanel({ onImport, totalChannels, totalCategories, saved, onClearSaved }: ImportPanelProps) {
   const [mode, setMode] = useState<Mode>("url");
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +76,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
       setError("Nenhum canal encontrado. Verifique o formato da lista (#EXTINF + URL).");
       return;
     }
-    onImport(channels);
+    onImport(channels, source);
     setValue("");
     setError(null);
     setSuccess(`${channels.length.toLocaleString("pt-BR")} canais carregados de ${source}.`);
@@ -159,6 +162,29 @@ export function ImportPanel({ onImport, totalChannels, totalCategories }: Import
       <p className="mt-2 text-xs leading-relaxed text-slate-400">
         Cole a URL, o conteúdo da lista ou selecione um arquivo .m3u para carregar seus canais.
       </p>
+
+      {saved && (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-ink/50 px-3 py-2">
+          <span className="min-w-0 text-[11px] leading-tight text-slate-400">
+            Lista salva neste dispositivo: <span className="text-slate-200">{saved.source}</span>
+            <span className="block font-mono text-[10px] text-slate-500">
+              {new Date(saved.savedAt).toLocaleString("pt-BR")}
+            </span>
+          </span>
+          {onClearSaved && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onClearSaved}
+              className="h-auto shrink-0 rounded-lg px-2 py-1 text-[11px] text-slate-400 hover:text-destructive"
+            >
+              Remover
+            </Button>
+          )}
+        </div>
+      )}
+
+
 
       <div className="mt-4 flex gap-1 rounded-xl bg-ink/60 p-1 text-xs font-medium">
         <Button type="button" variant="ghost" className={tabCls("url")} onClick={() => setMode("url")}>

@@ -7,6 +7,8 @@ import { ChannelRow } from "@/components/ChannelRow";
 import { PlayerOverlay } from "@/components/PlayerOverlay";
 import { groupByCategory, type Channel } from "@/lib/m3u";
 import { sortGroups } from "@/lib/categories";
+import { clearPlaylist, loadPlaylist, savePlaylist } from "@/lib/playlist-store";
+
 
 
 export const Route = createFileRoute("/")({
@@ -36,6 +38,37 @@ function Index() {
   const [search, setSearch] = useState("");
   const [current, setCurrent] = useState<Channel | null>(null);
   const [myList, setMyList] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState<{ source: string; savedAt: number } | null>(null);
+  const [restoring, setRestoring] = useState(true);
+
+  // Recupera a lista guardada no dispositivo do cliente.
+  useEffect(() => {
+    let active = true;
+    void loadPlaylist().then((data) => {
+      if (!active) return;
+      if (data) {
+        setChannels(data.channels);
+        setSaved({ source: data.source, savedAt: data.savedAt });
+      }
+      setRestoring(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleImport = (list: Channel[], source: string) => {
+    setChannels(list);
+    setSaved({ source, savedAt: Date.now() });
+    void savePlaylist(list, source);
+  };
+
+  const handleClearSaved = () => {
+    setChannels([]);
+    setSaved(null);
+    void clearPlaylist();
+  };
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -98,18 +131,26 @@ function Index() {
             />
           ) : (
             <div className="relative flex min-h-[420px] flex-col justify-end overflow-hidden rounded-3xl border border-white/10 bg-panel/60 p-8 lg:col-span-2">
-              <p className="font-mono text-xs uppercase text-aurora-2">Catálogo vazio</p>
-              <h1 className="mt-3 max-w-xl text-4xl font-black leading-tight text-foreground lg:text-6xl">Carregue sua lista M3U</h1>
+              <p className="font-mono text-xs uppercase text-aurora-2">
+                {restoring ? "Abrindo lista salva" : "Catálogo vazio"}
+              </p>
+              <h1 className="mt-3 max-w-xl text-4xl font-black leading-tight text-foreground lg:text-6xl">
+                {restoring ? "Recuperando sua lista…" : "Carregue sua lista M3U"}
+              </h1>
               <p className="mt-3 max-w-lg text-sm text-slate-300">Os canais reais da sua lista aparecerão aqui, organizados por categoria.</p>
+
             </div>
           )}
           <div id="import-panel">
             <ImportPanel
-              onImport={setChannels}
+              onImport={handleImport}
               totalChannels={channels.length}
               totalCategories={groups.length}
+              saved={saved}
+              onClearSaved={handleClearSaved}
             />
           </div>
+
         </section>
 
         <section className="mt-12 space-y-10 animate-rise [animation-delay:200ms]">
