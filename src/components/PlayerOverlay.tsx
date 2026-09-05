@@ -234,6 +234,26 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
         </div>
 
         <div className="border-t border-white/10 bg-panel/80 backdrop-blur-xl">
+          {seekable && (
+            <div className="flex items-center gap-3 px-5 pt-4 sm:px-8">
+              <span className="w-12 shrink-0 text-right font-mono text-[11px] text-slate-400">
+                {formatTime(current)}
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={duration}
+                step={0.1}
+                value={Math.min(current, duration)}
+                onChange={(e) => seekTo(Number(e.target.value))}
+                aria-label="Avançar ou voltar o filme"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-aurora-2 [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+              />
+              <span className="w-12 shrink-0 font-mono text-[11px] text-slate-400">
+                {formatTime(duration)}
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-4 px-5 py-4 sm:px-8">
             <button
               onClick={togglePlay}
@@ -242,20 +262,56 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
             >
               {playing ? <Pause className="size-4 fill-ink" /> : <Play className="ml-0.5 size-4 fill-ink" />}
             </button>
-            <button
-              onClick={toggleMute}
-              aria-label={muted ? "Ativar som" : "Silenciar"}
-              className="text-slate-300 transition-colors hover:text-foreground"
-            >
-              {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-            </button>
+            {seekable && (
+              <>
+                <button
+                  onClick={() => skip(-10)}
+                  aria-label="Voltar 10 segundos"
+                  className="text-slate-300 transition-colors hover:text-foreground"
+                >
+                  <RotateCcw className="size-5" />
+                </button>
+                <button
+                  onClick={() => skip(10)}
+                  aria-label="Avançar 10 segundos"
+                  className="text-slate-300 transition-colors hover:text-foreground"
+                >
+                  <RotateCw className="size-5" />
+                </button>
+              </>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleMute}
+                aria-label={muted ? "Ativar som" : "Silenciar"}
+                className="text-slate-300 transition-colors hover:text-foreground"
+              >
+                {muted || volume === 0 ? (
+                  <VolumeX className="size-5" />
+                ) : volume < 0.5 ? (
+                  <Volume1 className="size-5" />
+                ) : (
+                  <Volume2 className="size-5" />
+                )}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={muted ? 0 : volume}
+                onChange={(e) => changeVolume(Number(e.target.value))}
+                aria-label="Volume"
+                className="h-1.5 w-24 cursor-pointer appearance-none rounded-full bg-white/15 accent-aurora-2 [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+              />
+            </div>
             <div className="flex-1 text-center font-mono text-xs text-slate-400">
               {channel.live ? (
                 <span className="rounded-md bg-live/15 px-2 py-1 font-bold text-live ring-1 ring-live/30">
                   AO VIVO
                 </span>
               ) : (
-                "stream hls"
+                "filme"
               )}
             </div>
             <button
