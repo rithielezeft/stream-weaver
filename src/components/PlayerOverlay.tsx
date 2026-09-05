@@ -52,8 +52,106 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
   }, [channel]);
 
   useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    setCurrent(0);
+    setDuration(0);
+    const onTime = () => setCurrent(v.currentTime);
+    const onMeta = () => setDuration(Number.isFinite(v.duration) ? v.duration : 0);
+    const onPlayEv = () => setPlaying(true);
+    const onPauseEv = () => setPlaying(false);
+    const onVol = () => {
+      setVolume(v.volume);
+      setMuted(v.muted);
+    };
+    v.addEventListener("timeupdate", onTime);
+    v.addEventListener("durationchange", onMeta);
+    v.addEventListener("loadedmetadata", onMeta);
+    v.addEventListener("play", onPlayEv);
+    v.addEventListener("pause", onPauseEv);
+    v.addEventListener("volumechange", onVol);
+    return () => {
+      v.removeEventListener("timeupdate", onTime);
+      v.removeEventListener("durationchange", onMeta);
+      v.removeEventListener("loadedmetadata", onMeta);
+      v.removeEventListener("play", onPlayEv);
+      v.removeEventListener("pause", onPauseEv);
+      v.removeEventListener("volumechange", onVol);
+    };
+  }, [channel]);
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      void v.play().catch(() => {});
+    } else {
+      v.pause();
+    }
+  };
+
+  const skip = (seconds: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    const target = v.currentTime + seconds;
+    const max = Number.isFinite(v.duration) ? v.duration : target;
+    v.currentTime = Math.min(Math.max(target, 0), max);
+    setCurrent(v.currentTime);
+  };
+
+  const seekTo = (value: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = value;
+    setCurrent(value);
+  };
+
+  const changeVolume = (value: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.volume = value;
+    v.muted = value === 0;
+    setVolume(value);
+    setMuted(v.muted);
+  };
+
+  const toggleMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    if (!v.muted && v.volume === 0) {
+      v.volume = 0.5;
+      setVolume(0.5);
+    }
+    setMuted(v.muted);
+  };
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        skip(10);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        skip(-10);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        changeVolume(Math.min(1, (videoRef.current?.volume ?? 1) + 0.1));
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        changeVolume(Math.max(0, (videoRef.current?.volume ?? 0) - 0.1));
+      } else if (e.key === " " || e.key === "k") {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === "m") {
+        toggleMute();
+      }
     };
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -63,28 +161,21 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
     };
   }, [onClose]);
 
-  const togglePlay = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.paused) {
-      v.play();
-      setPlaying(true);
-    } else {
-      v.pause();
-      setPlaying(false);
-    }
-  };
-
-  const toggleMute = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setMuted(v.muted);
-  };
-
   const fullscreen = () => {
     containerRef.current?.requestFullscreen?.();
   };
+
+  const formatTime = (s: number) => {
+    if (!Number.isFinite(s) || s < 0) return "0:00";
+    const total = Math.floor(s);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const sec = total % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+      : `${m}:${String(sec).padStart(2, "0")}`;
+  };
+
 
   return (
     <div className="fixed inset-0 z-50 bg-ink/95 backdrop-blur-md animate-rise [animation-duration:300ms]">
