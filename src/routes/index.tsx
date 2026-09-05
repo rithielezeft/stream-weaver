@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { Hero } from "@/components/Hero";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ChannelRow } from "@/components/ChannelRow";
 import { PlayerOverlay } from "@/components/PlayerOverlay";
 import { groupByCategory, type Channel } from "@/lib/m3u";
+import { sortGroups } from "@/lib/categories";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
