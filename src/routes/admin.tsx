@@ -73,7 +73,7 @@ function AdminPage() {
       const data = await overview({ data: { search, filter } });
       if ("unauthorized" in data) {
         setDenied(true);
-        setError(data.message);
+        setError(data.message ?? "Acesso restrito.");
         return;
       }
       setDenied(false);
