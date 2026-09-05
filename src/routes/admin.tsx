@@ -323,14 +323,26 @@ function AdminPage() {
             />
             <button
               onClick={() =>
-                void act(() => savePlan({ data: { ...newPlan, active: true } })).then(() =>
-                  setNewPlan({ id: "", name: "", days: 30, price: 0, description: "" }),
-                )
+                void act(() => savePlan({ data: { ...newPlan, active: true } })).then(() => {
+                  setNewPlan({ id: "", name: "", days: 30, price: 0, description: "" });
+                  setEditingId(null);
+                })
               }
               className="rounded-full bg-aurora-2 px-5 py-2 text-xs font-bold text-ink"
             >
-              Salvar plano
+              {editingId ? "Salvar alterações" : "Salvar plano"}
             </button>
+            {editingId && (
+              <button
+                onClick={() => {
+                  setEditingId(null);
+                  setNewPlan({ id: "", name: "", days: 30, price: 0, description: "" });
+                }}
+                className="text-xs text-slate-300 hover:underline"
+              >
+                cancelar
+              </button>
+            )}
           </div>
         </section>
 
