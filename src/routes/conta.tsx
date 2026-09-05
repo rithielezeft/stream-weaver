@@ -78,7 +78,9 @@ function ContaPage() {
     void Promise.all([me(), plansFn()])
       .then(([acc, pl]) => {
         setAccount(acc);
+        setListUrl(acc?.m3uUrl ?? "");
         setPlans(pl);
+
       })
       .catch(() => undefined)
       .finally(() => setLoading(false));
