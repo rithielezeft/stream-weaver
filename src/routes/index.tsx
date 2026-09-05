@@ -7,6 +7,8 @@ import { ChannelRow } from "@/components/ChannelRow";
 import { PlayerOverlay } from "@/components/PlayerOverlay";
 import { groupByCategory, type Channel } from "@/lib/m3u";
 import { sortGroups } from "@/lib/categories";
+import { clearPlaylist, loadPlaylist, savePlaylist } from "@/lib/playlist-store";
+
 
 
 export const Route = createFileRoute("/")({
