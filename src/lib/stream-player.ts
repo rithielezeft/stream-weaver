@@ -56,7 +56,11 @@ export function proxyStreamUrl(url: string): string {
  */
 async function probeStreamKind(streamUrl: string): Promise<"hls" | "ts" | "native"> {
   try {
-    const res = await fetch(streamUrl, { headers: { Range: "bytes=0-1" } });
+    const res = await fetch(streamUrl);
+    if (!res.ok) {
+      void res.body?.cancel().catch(() => {});
+      return "ts"; // mpegts.js falha com mensagem de rede mais precisa
+    }
     const ct = (res.headers.get("content-type") ?? "").toLowerCase();
     if (/mpegurl|m3u/.test(ct)) {
       void res.body?.cancel().catch(() => {});
@@ -100,6 +104,7 @@ export function attachStream(
 
   let destroyed = false;
   let hlsRetries = 0;
+  let tsRetries = 0;
   let hls: import("hls.js").default | null = null;
   let tsPlayer: MpegtsPlayer | null = null;
 
@@ -179,10 +184,10 @@ export function attachStream(
     player.on(mpegts.Events.ERROR, (...args: unknown[]) => {
       if (destroyed || errored) return;
       errored = true;
-      const errorType = (args[0] as { type?: unknown } | undefined)?.type;
+      // mpegts.js repassa (errorType, errorMessage) — errorType é o valor do enum.
+      const errorType = typeof args[0] === "string" ? args[0] : String(args[0] ?? "");
       const isMedia =
-        errorType === mpegts.ErrorTypes.MEDIA_ERROR ||
-        (typeof errorType === "string" && errorType === "MEDIA_ERROR");
+        errorType === mpegts.ErrorTypes.MEDIA_ERROR || /media/i.test(errorType);
       // MPEG-TS falhou. Em URLs sem extensão ainda vale tentar a reprodução
       // nativa (pode ser um MP4 servido sem extensão); nos outros casos, erro.
       teardownCurrentPlayer();
@@ -290,7 +295,6 @@ export function attachStream(
     nativeActive = false;
     video.removeEventListener("playing", onPlaying);
     video.removeEventListener("error", onNativeError);
-    video.removeEventListener("error", onVideoError);
     teardownCurrentPlayer();
   };
 }
