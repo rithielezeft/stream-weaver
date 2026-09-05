@@ -245,13 +245,40 @@ function AdminPage() {
               >
                 <span className="text-sm font-semibold">
                   {p.name} · {p.days} dias · R$ {p.price.toFixed(2)}
+                  {p.description ? ` · ${p.description}` : ""}
+                  {p.active ? "" : " · inativo"}
                 </span>
-                <button
-                  onClick={() => void act(() => deletePlan({ data: { id: p.id } }))}
-                  className="text-xs text-live hover:underline"
-                >
-                  remover
-                </button>
+                <span className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setEditingId(p.id);
+                      setNewPlan({
+                        id: p.id,
+                        name: p.name,
+                        days: p.days,
+                        price: p.price,
+                        description: p.description,
+                      });
+                    }}
+                    className="text-xs text-aurora-2 hover:underline"
+                  >
+                    editar
+                  </button>
+                  <button
+                    onClick={() =>
+                      void act(() => savePlan({ data: { ...p, active: !p.active } }))
+                    }
+                    className="text-xs text-slate-300 hover:underline"
+                  >
+                    {p.active ? "desativar" : "ativar"}
+                  </button>
+                  <button
+                    onClick={() => void act(() => deletePlan({ data: { id: p.id } }))}
+                    className="text-xs text-live hover:underline"
+                  >
+                    remover
+                  </button>
+                </span>
               </div>
             ))}
           </div>
