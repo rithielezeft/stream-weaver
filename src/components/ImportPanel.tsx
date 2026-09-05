@@ -22,7 +22,7 @@ https://cdn.exemplo.com/canal042/index.m3u8`;
 const MAX_FILE_BYTES = 550 * 1024 * 1024;
 const LIMIT_LABEL = "550 MB";
 
-export function ImportPanel({ onImport, totalChannels, totalCategories }: ImportPanelProps) {
+export function ImportPanel({ onImport, totalChannels, totalCategories, saved, onClearSaved }: ImportPanelProps) {
   const [mode, setMode] = useState<Mode>("url");
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
