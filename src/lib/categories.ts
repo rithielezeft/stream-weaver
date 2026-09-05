@@ -1,4 +1,4 @@
-import type { Channel } from "./m3u";
+// Ordenação de categorias do catálogo.
 
 /** Categorias que devem aparecer primeiro, nesta ordem. */
 export const PRIORITY_CATEGORIES = [
@@ -34,7 +34,7 @@ export function priorityIndex(name: string): number {
 }
 
 /** Ordena as categorias: prioritárias primeiro, depois as maiores. */
-export function sortGroups(groups: [string, Channel[]][]): [string, Channel[]][] {
+export function sortGroups<T>(groups: [string, T[]][]): [string, T[]][] {
   return [...groups].sort((a, b) => {
     const pa = priorityIndex(a[0]);
     const pb = priorityIndex(b[0]);

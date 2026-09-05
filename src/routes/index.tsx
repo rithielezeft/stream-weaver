@@ -5,7 +5,9 @@ import { Hero } from "@/components/Hero";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ChannelRow } from "@/components/ChannelRow";
 import { PlayerOverlay } from "@/components/PlayerOverlay";
-import { groupByCategory, type Channel } from "@/lib/m3u";
+import { SeriesOverlay } from "@/components/SeriesOverlay";
+import type { Channel } from "@/lib/m3u";
+import { buildCatalog, groupCatalog, type CatalogItem, type Series } from "@/lib/series";
 import { sortGroups } from "@/lib/categories";
 import { clearPlaylist, loadPlaylist, savePlaylist } from "@/lib/playlist-store";
 
@@ -37,6 +39,7 @@ function Index() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [search, setSearch] = useState("");
   const [current, setCurrent] = useState<Channel | null>(null);
+  const [series, setSeries] = useState<Series | null>(null);
   const [myList, setMyList] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<{ source: string; savedAt: number } | null>(null);
   const [restoring, setRestoring] = useState(true);
@@ -78,8 +81,14 @@ function Index() {
     );
   }, [channels, search]);
 
-  const groups = useMemo(() => sortGroups(groupByCategory(filtered)), [filtered]);
+  const catalog = useMemo(() => buildCatalog(filtered), [filtered]);
+  const groups = useMemo(() => sortGroups(groupCatalog(catalog)), [catalog]);
   const featured = filtered[0] ?? channels[0] ?? null;
+
+  const openItem = (item: CatalogItem) => {
+    if (item.kind === "series") setSeries(item.series);
+    else setCurrent(item.channel);
+  };
 
   // Mostra as primeiras categorias na hora e vai revelando o resto em segundo
   // plano, para listas gigantes não travarem a tela logo após a importação.
@@ -160,7 +169,7 @@ function Index() {
             </p>
           )}
           {groups.slice(0, rowsVisible).map(([name, items]) => (
-            <ChannelRow key={name} title={name} channels={items} onPlay={setCurrent} />
+            <ChannelRow key={name} title={name} items={items} onOpen={openItem} />
           ))}
           {rowsVisible < groups.length && (
             <p className="py-6 text-center font-mono text-xs text-slate-500">
@@ -170,6 +179,10 @@ function Index() {
 
         </section>
       </main>
+
+      {series && !current && (
+        <SeriesOverlay series={series} onPlay={setCurrent} onClose={() => setSeries(null)} />
+      )}
 
       {current && (
         <PlayerOverlay
