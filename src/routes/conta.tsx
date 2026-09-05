@@ -8,6 +8,8 @@ import {
   registerAccount,
   listActivePlans,
   startCheckout,
+  saveMyPlaylistUrl,
+
   type AccountView,
 } from "@/lib/account.functions";
 import { getDeviceId } from "@/lib/device-id";
@@ -58,6 +60,11 @@ function ContaPage() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const saveList = useServerFn(saveMyPlaylistUrl);
+  const [listUrl, setListUrl] = useState("");
+  const [savingList, setSavingList] = useState(false);
+  const [listMsg, setListMsg] = useState("");
+
 
   const [form, setForm] = useState({
     username: "",
