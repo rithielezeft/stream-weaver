@@ -96,7 +96,11 @@ function ContaPage() {
         mode === "register"
           ? await register({ data: { ...form, deviceId } })
           : await login({ data: { email: form.email, password: form.password, deviceId } });
-      if (res.ok) setAccount(res.account);
+      if (res.ok) {
+        setAccount(res.account);
+        setListUrl(res.account.m3uUrl ?? "");
+      }
+
       else setError(res.message);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível continuar.");
