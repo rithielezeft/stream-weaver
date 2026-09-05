@@ -122,7 +122,7 @@ export const loginAccount = createServerFn({ method: "POST" })
         : { $set: update },
     );
     await createSession(String((user as { _id: unknown })._id));
-    return toAccountView(user);
+    return { ok: true, account: toAccountView(user) };
   });
 
 export const logoutAccount = createServerFn({ method: "POST" }).handler(async () => {
