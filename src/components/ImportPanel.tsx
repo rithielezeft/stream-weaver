@@ -76,7 +76,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories, saved, o
       setError("Nenhum canal encontrado. Verifique o formato da lista (#EXTINF + URL).");
       return;
     }
-    onImport(channels);
+    onImport(channels, source);
     setValue("");
     setError(null);
     setSuccess(`${channels.length.toLocaleString("pt-BR")} canais carregados de ${source}.`);
