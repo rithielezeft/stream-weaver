@@ -18,6 +18,11 @@ export interface AccountView {
 
 const TRIAL_DAYS = 3;
 
+/** Resultado esperado: sucesso com a conta, ou recado amigável de erro. */
+export type AccountResult =
+  | { ok: true; account: AccountView }
+  | { ok: false; message: string };
+
 const registerSchema = z.object({
   username: z.string().trim().min(3).max(32),
   email: z.string().trim().email(),
