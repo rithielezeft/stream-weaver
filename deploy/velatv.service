@@ -1,5 +1,9 @@
 ; /etc/systemd/system/velatv.service
-; sudo systemctl daemon-reload && sudo systemctl enable --now velatv
+; ANTES DE ATIVAR: ajuste User, WorkingDirectory e EnvironmentFile abaixo
+; para o usuário e a pasta reais do seu servidor. Exemplo de correção rápida:
+;   sudo sed -i 's|^User=.*|User=SEU_USUARIO|; s|^WorkingDirectory=.*|WorkingDirectory=/caminho/da/pasta|; s|^EnvironmentFile=.*|EnvironmentFile=/caminho/da/pasta/.env|' /etc/systemd/system/velatv.service
+; Depois:
+;   sudo systemctl daemon-reload && sudo systemctl enable --now velatv
 [Unit]
 Description=Vela.tv (TanStack Start)
 After=network-online.target
