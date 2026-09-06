@@ -6,10 +6,16 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// Para hospedar na Raspberry Pi (Node + nginx) rode:
+//   NITRO_PRESET=node-server npm run build
+// Sem essa variável o build continua igual ao da Lovable (Cloudflare).
+const selfHostPreset = process.env["NITRO_PRESET"];
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  ...(selfHostPreset ? { nitro: { preset: selfHostPreset } } : {}),
 });

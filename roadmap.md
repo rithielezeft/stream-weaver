@@ -22,3 +22,5 @@
 - [x] WhatsApp + capas configuraveis no admin
 - [x] Menu com Series, Filmes, Lancamentos, Cinema, Ao vivo + Categorias
 - [x] Nova conexao MongoDB (MONGO_URL atualizada)
+
+- [x] Deploy próprio: build Node (NITRO_PRESET=node-server), porta 8045, nginx + systemd + HTTPS (velatv.zeferius.com) — ver DEPLOY.md

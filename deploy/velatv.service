@@ -1,0 +1,19 @@
+; /etc/systemd/system/velatv.service
+; sudo systemctl daemon-reload && sudo systemctl enable --now velatv
+[Unit]
+Description=Vela.tv (TanStack Start)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/velatv
+EnvironmentFile=/home/pi/velatv/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node .output/server/index.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
