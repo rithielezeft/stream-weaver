@@ -60,13 +60,14 @@ portas 80 e 443 no roteador para a Raspberry.
 
 ## 6. Atualizar depois de mudar algo
 
+Rode o script pronto, dentro da pasta do projeto:
+
 ```sh
 cd /home/pi/velatv
-git pull
-npm ci
-npm run build:node
-sudo systemctl restart velatv
+bash atualizar.sh
 ```
+
+Ele já faz tudo: `git pull`, `npm ci`, `npm run build:node` e reinicia o serviço.
 
 ## Observações
 
