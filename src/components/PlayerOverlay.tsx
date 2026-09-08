@@ -6,6 +6,7 @@ import {
   Volume1,
   VolumeX,
   Maximize,
+  Minimize,
   X,
   Loader2,
   RotateCcw,
@@ -126,44 +127,41 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
     setMuted(v.muted);
   };
 
+  // Tela cheia: alterna entrar/sair, com fallback para navegadores antigos
+  // (Safari) e sincroniza o ícone com o estado real do navegador.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
-      }
-      const target = e.target as HTMLElement | null;
-      if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        skip(10);
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        skip(-10);
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        changeVolume(Math.min(1, (videoRef.current?.volume ?? 1) + 0.1));
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        changeVolume(Math.max(0, (videoRef.current?.volume ?? 0) - 0.1));
-      } else if (e.key === " " || e.key === "k") {
-        e.preventDefault();
-        togglePlay();
-      } else if (e.key === "m") {
-        toggleMute();
-      }
+    const onFsChange = () => {
+      setFullscreenActive(Boolean(document.fullscreenElement || (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement));
     };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
     return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
     };
-  }, [onClose]);
+  }, []);
 
-  const fullscreen = () => {
-    containerRef.current?.requestFullscreen?.();
+  const toggleFullscreen = async () => {
+    const el = containerRef.current;
+    if (!el) return;
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void> | void;
+    };
+    const requestFs = el.requestFullscreen ?? (el as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void }).webkitRequestFullscreen;
+    const isFull = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
+    try {
+      if (isFull) {
+        await (document.exitFullscreen?.() ?? doc.webkitExitFullscreen?.());
+      } else if (requestFs) {
+        await requestFs.call(el);
+      }
+    } catch {
+      /* alguns navegadores bloqueiam sem gesto do usuário; ignorado */
+    }
   };
+
+  const fullscreen = () => void toggleFullscreen();
 
   const formatTime = (s: number) => {
     if (!Number.isFinite(s) || s < 0) return "0:00";
