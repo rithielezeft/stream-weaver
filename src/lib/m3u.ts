@@ -95,25 +95,34 @@ export function parseM3U(content: string): Channel[] {
     }
     const id = String(channels.length);
     if (pendingName !== null) {
-      channels.push({
-        id,
-        name: pendingName || `Canal ${channels.length + 1}`,
-        url,
-        group: pendingGroupTitle || pendingGroup || "Outros",
-        ...(pendingLogo ? { logo: pendingLogo } : {}),
-        ...(pendingTvgId ? { tvgId: pendingTvgId } : {}),
-      });
+      const name = pendingName || `Canal ${channels.length + 1}`;
+      const group = pendingGroupTitle || pendingGroup || "Outros";
+      // Descarta streams 4K/UHD: pesados demais; mantém só as qualidades mais baixas.
+      if (!is4kOrUhd(name, group, url)) {
+        channels.push({
+          id,
+          name,
+          url,
+          group,
+          ...(pendingLogo ? { logo: pendingLogo } : {}),
+          ...(pendingTvgId ? { tvgId: pendingTvgId } : {}),
+        });
+      }
       pendingName = null;
       pendingLogo = undefined;
       pendingGroupTitle = null;
       pendingTvgId = undefined;
     } else {
-      channels.push({
-        id,
-        name: `Canal ${channels.length + 1}`,
-        url,
-        group: pendingGroup || "Outros",
-      });
+      const name = `Canal ${channels.length + 1}`;
+      const group = pendingGroup || "Outros";
+      if (!is4kOrUhd(name, group, url)) {
+        channels.push({
+          id,
+          name,
+          url,
+          group,
+        });
+      }
     }
     pendingGroup = null;
   }
