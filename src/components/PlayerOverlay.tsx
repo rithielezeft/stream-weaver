@@ -225,6 +225,7 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
             className="absolute inset-0 h-full w-full bg-black object-contain"
             playsInline
             onClick={togglePlay}
+            onDoubleClick={() => void toggleFullscreen()}
           />
 
           {loading && !error && (
@@ -355,10 +356,11 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
             </div>
             <button
               onClick={fullscreen}
-              aria-label="Tela cheia"
+              aria-label={fullscreenActive ? "Sair da tela cheia" : "Tela cheia"}
+              title={fullscreenActive ? "Sair da tela cheia (F)" : "Tela cheia (F)"}
               className="text-slate-300 transition-colors hover:text-foreground"
             >
-              <Maximize className="size-5" />
+              {fullscreenActive ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
             </button>
           </div>
 
