@@ -12,6 +12,7 @@ import { buildCatalog, groupCatalog, type CatalogItem, type Series } from "@/lib
 import { sortGroups } from "@/lib/categories";
 import { matchesSection, type SectionId } from "@/lib/sections";
 import { clearPlaylist, loadPlaylist, savePlaylist } from "@/lib/playlist-store";
+import { filterLowQuality } from "@/lib/m3u";
 import { claimPlaylist, getMyAccount, type AccountView } from "@/lib/account.functions";
 import { getSiteInfo, type ShowcasePoster } from "@/lib/showcase.functions";
 import { ShowcaseGrid } from "@/components/ShowcaseGrid";
