@@ -164,6 +164,46 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
 
   const fullscreen = () => void toggleFullscreen();
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        // Em tela cheia o navegador sai sozinho; só fecha o player fora dela.
+        if (!document.fullscreenElement) onClose();
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        skip(10);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        skip(-10);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        changeVolume(Math.min(1, (videoRef.current?.volume ?? 1) + 0.1));
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        changeVolume(Math.max(0, (videoRef.current?.volume ?? 0) - 0.1));
+      } else if (e.key === " " || e.key === "k") {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === "m") {
+        toggleMute();
+      } else if (e.key === "f") {
+        e.preventDefault();
+        fullscreen();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose]);
+
   const formatTime = (s: number) => {
     if (!Number.isFinite(s) || s < 0) return "0:00";
     const total = Math.floor(s);
