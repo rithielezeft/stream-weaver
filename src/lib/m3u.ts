@@ -11,6 +11,32 @@ export interface Channel {
   live?: boolean;
 }
 
+/** Remove acentos e caracteres especiais para comparar nomes. */
+function normalizeName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase();
+}
+
+/**
+ * Detecta streams em qualidade 4K/UHD pelo nome do canal, grupo ou URL.
+ * Esses streams pesam muito e são descartados na importação, mantendo
+ * somente as qualidades mais baixas (Full HD / HD / SD).
+ */
+function is4kOrUhd(name: string, group: string, url: string): boolean {
+  const haystack = `${normalizeName(name)}|${normalizeName(group)}|${url.toUpperCase()}`;
+  return /4K|UHD|HEVC|2160P/.test(haystack);
+}
+
+/**
+ * Remove de uma lista já carregada os streams 4K/UHD
+ * (usado também ao restaurar listas salvas localmente).
+ */
+export function filterLowQuality(channels: Channel[]): Channel[] {
+  return channels.filter((ch) => !is4kOrUhd(ch.name, ch.group, ch.url));
+}
+
 /** Extrai um atributo `chave="valor"` sem regex global (evita arrays enormes). */
 function getAttr(line: string, key: string): string | undefined {
   const token = `${key}="`;
@@ -77,25 +103,34 @@ export function parseM3U(content: string): Channel[] {
     }
     const id = String(channels.length);
     if (pendingName !== null) {
-      channels.push({
-        id,
-        name: pendingName || `Canal ${channels.length + 1}`,
-        url,
-        group: pendingGroupTitle || pendingGroup || "Outros",
-        ...(pendingLogo ? { logo: pendingLogo } : {}),
-        ...(pendingTvgId ? { tvgId: pendingTvgId } : {}),
-      });
+      const name = pendingName || `Canal ${channels.length + 1}`;
+      const group = pendingGroupTitle || pendingGroup || "Outros";
+      // Descarta streams 4K/UHD: pesados demais; mantém só as qualidades mais baixas.
+      if (!is4kOrUhd(name, group, url)) {
+        channels.push({
+          id,
+          name,
+          url,
+          group,
+          ...(pendingLogo ? { logo: pendingLogo } : {}),
+          ...(pendingTvgId ? { tvgId: pendingTvgId } : {}),
+        });
+      }
       pendingName = null;
       pendingLogo = undefined;
       pendingGroupTitle = null;
       pendingTvgId = undefined;
     } else {
-      channels.push({
-        id,
-        name: `Canal ${channels.length + 1}`,
-        url,
-        group: pendingGroup || "Outros",
-      });
+      const name = `Canal ${channels.length + 1}`;
+      const group = pendingGroup || "Outros";
+      if (!is4kOrUhd(name, group, url)) {
+        channels.push({
+          id,
+          name,
+          url,
+          group,
+        });
+      }
     }
     pendingGroup = null;
   }

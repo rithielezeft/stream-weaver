@@ -6,7 +6,6 @@ export const PRIORITY_CATEGORIES = [
   "CINEMA",
   "TERROR",
   "DRAMA",
-  "UHD 4K",
   "BRASILEIRAO",
   "SPORTS WORLD",
   "NOTICIAS",

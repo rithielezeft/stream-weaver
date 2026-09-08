@@ -12,6 +12,7 @@ import { buildCatalog, groupCatalog, type CatalogItem, type Series } from "@/lib
 import { sortGroups } from "@/lib/categories";
 import { matchesSection, type SectionId } from "@/lib/sections";
 import { clearPlaylist, loadPlaylist, savePlaylist } from "@/lib/playlist-store";
+import { filterLowQuality } from "@/lib/m3u";
 import { claimPlaylist, getMyAccount, type AccountView } from "@/lib/account.functions";
 import { getSiteInfo, type ShowcasePoster } from "@/lib/showcase.functions";
 import { ShowcaseGrid } from "@/components/ShowcaseGrid";
@@ -98,7 +99,10 @@ function Index() {
     void loadPlaylist().then((data) => {
       if (!active) return;
       if (data) {
-        setChannels(data.channels);
+        // Descarta canais 4K/UHD salvos antes da mudança de qualidade.
+        const cleaned = filterLowQuality(data.channels);
+        setChannels(cleaned);
+        if (cleaned.length !== data.channels.length) void savePlaylist(cleaned, data.source);
         setSaved({ source: data.source, savedAt: data.savedAt });
       }
       setRestoring(false);
