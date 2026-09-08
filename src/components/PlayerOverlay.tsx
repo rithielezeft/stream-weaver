@@ -32,6 +32,7 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
   const [volume, setVolume] = useState(1);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [fullscreenActive, setFullscreenActive] = useState(false);
   const seekable = duration > 0 && Number.isFinite(duration);
 
 
