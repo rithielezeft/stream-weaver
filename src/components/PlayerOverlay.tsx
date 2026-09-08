@@ -6,6 +6,7 @@ import {
   Volume1,
   VolumeX,
   Maximize,
+  Minimize,
   X,
   Loader2,
   RotateCcw,
@@ -31,6 +32,7 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
   const [volume, setVolume] = useState(1);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [fullscreenActive, setFullscreenActive] = useState(false);
   const seekable = duration > 0 && Number.isFinite(duration);
 
 
@@ -126,10 +128,47 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
     setMuted(v.muted);
   };
 
+  // Tela cheia: alterna entrar/sair, com fallback para navegadores antigos
+  // (Safari) e sincroniza o ícone com o estado real do navegador.
+  useEffect(() => {
+    const onFsChange = () => {
+      setFullscreenActive(Boolean(document.fullscreenElement || (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const el = containerRef.current;
+    if (!el) return;
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void> | void;
+    };
+    const requestFs = el.requestFullscreen ?? (el as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void }).webkitRequestFullscreen;
+    const isFull = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
+    try {
+      if (isFull) {
+        await (document.exitFullscreen?.() ?? doc.webkitExitFullscreen?.());
+      } else if (requestFs) {
+        await requestFs.call(el);
+      }
+    } catch {
+      /* alguns navegadores bloqueiam sem gesto do usuário; ignorado */
+    }
+  };
+
+  const fullscreen = () => void toggleFullscreen();
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        // Em tela cheia o navegador sai sozinho; só fecha o player fora dela.
+        if (!document.fullscreenElement) onClose();
         return;
       }
       const target = e.target as HTMLElement | null;
@@ -151,6 +190,9 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
         togglePlay();
       } else if (e.key === "m") {
         toggleMute();
+      } else if (e.key === "f") {
+        e.preventDefault();
+        fullscreen();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -159,11 +201,8 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose]);
-
-  const fullscreen = () => {
-    containerRef.current?.requestFullscreen?.();
-  };
 
   const formatTime = (s: number) => {
     if (!Number.isFinite(s) || s < 0) return "0:00";
@@ -186,6 +225,7 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
             className="absolute inset-0 h-full w-full bg-black object-contain"
             playsInline
             onClick={togglePlay}
+            onDoubleClick={() => void toggleFullscreen()}
           />
 
           {loading && !error && (
@@ -316,10 +356,11 @@ export function PlayerOverlay({ channel, upNext, onPlay, onClose }: PlayerOverla
             </div>
             <button
               onClick={fullscreen}
-              aria-label="Tela cheia"
+              aria-label={fullscreenActive ? "Sair da tela cheia" : "Tela cheia"}
+              title={fullscreenActive ? "Sair da tela cheia (F)" : "Tela cheia (F)"}
               className="text-slate-300 transition-colors hover:text-foreground"
             >
-              <Maximize className="size-5" />
+              {fullscreenActive ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
             </button>
           </div>
 
