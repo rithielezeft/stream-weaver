@@ -98,7 +98,10 @@ function Index() {
     void loadPlaylist().then((data) => {
       if (!active) return;
       if (data) {
-        setChannels(data.channels);
+        // Descarta canais 4K/UHD salvos antes da mudança de qualidade.
+        const cleaned = filterLowQuality(data.channels);
+        setChannels(cleaned);
+        if (cleaned.length !== data.channels.length) void savePlaylist(cleaned, data.source);
         setSaved({ source: data.source, savedAt: data.savedAt });
       }
       setRestoring(false);
