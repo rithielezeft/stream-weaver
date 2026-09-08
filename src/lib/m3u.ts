@@ -29,6 +29,14 @@ function is4kOrUhd(name: string, group: string, url: string): boolean {
   return /4K|UHD|HEVC|2160P/.test(haystack);
 }
 
+/**
+ * Remove de uma lista já carregada os streams 4K/UHD
+ * (usado também ao restaurar listas salvas localmente).
+ */
+export function filterLowQuality(channels: Channel[]): Channel[] {
+  return channels.filter((ch) => !is4kOrUhd(ch.name, ch.group, ch.url));
+}
+
 /** Extrai um atributo `chave="valor"` sem regex global (evita arrays enormes). */
 function getAttr(line: string, key: string): string | undefined {
   const token = `${key}="`;
