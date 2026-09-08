@@ -11,6 +11,24 @@ export interface Channel {
   live?: boolean;
 }
 
+/** Remove acentos e caracteres especiais para comparar nomes. */
+function normalizeName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase();
+}
+
+/**
+ * Detecta streams em qualidade 4K/UHD pelo nome do canal, grupo ou URL.
+ * Esses streams pesam muito e são descartados na importação, mantendo
+ * somente as qualidades mais baixas (Full HD / HD / SD).
+ */
+function is4kOrUhd(name: string, group: string, url: string): boolean {
+  const haystack = `${normalizeName(name)}|${normalizeName(group)}|${url.toUpperCase()}`;
+  return /4K|UHD|HEVC|2160P/.test(haystack);
+}
+
 /** Extrai um atributo `chave="valor"` sem regex global (evita arrays enormes). */
 function getAttr(line: string, key: string): string | undefined {
   const token = `${key}="`;
