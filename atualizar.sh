@@ -10,8 +10,12 @@ cd "$(dirname "$0")"
 echo "==> Puxando novidades do GitHub..."
 git pull
 
-echo "==> Instalando dependências..."
-npm ci
+if [ -d "node_modules" ] && [ "node_modules/.package-lock.json" -nt "package.json" ]; then
+  echo "==> Dependências já instaladas, pulando npm ci..."
+else
+  echo "==> Instalando dependências..."
+  npm ci
+fi
 
 echo "==> Gerando versão de produção..."
 npm run build:node
