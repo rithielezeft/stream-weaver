@@ -85,10 +85,9 @@ async function getClient(): Promise<MongoClient> {
   const url = process.env["MONGO_URL"];
   if (!url) throw new Error("MONGO_URL não configurado.");
   if (!clientPromise) {
-    const moduleName = "mongodb";
-    clientPromise = import(/* @vite-ignore */ moduleName)
+    clientPromise = loadMongo()
       .then((mod) =>
-        new (mod as typeof import("mongodb")).MongoClient(url, {
+        new mod.MongoClient(url, {
           serverSelectionTimeoutMS: 10000,
         }).connect(),
       )
@@ -97,6 +96,7 @@ async function getClient(): Promise<MongoClient> {
         throw error;
       });
   }
+
   return clientPromise;
 }
 
@@ -146,11 +146,32 @@ export async function ensureIndexes(): Promise<void> {
   ensured = true;
 }
 
-/** Carrega o driver em tempo de execução (evita empacotá-lo no bundle do worker). */
+/**
+ * Carrega o driver em tempo de execução, direto do node_modules do servidor.
+ * `createRequire` evita que o empacotador reescreva o caminho (o que causava
+ * o erro `No such module "_ssr/mongodb"` no build de produção em Node).
+ */
+let mongoPromise: Promise<typeof import("mongodb")> | null = null;
+
 export async function loadMongo(): Promise<typeof import("mongodb")> {
-  const moduleName = "mongodb";
-  return (await import(/* @vite-ignore */ moduleName)) as typeof import("mongodb");
+  if (!mongoPromise) {
+    mongoPromise = (async () => {
+      const moduleName = "mongodb";
+      try {
+        const { createRequire } = await import("node:module");
+        const require = createRequire(import.meta.url);
+        return require(moduleName) as typeof import("mongodb");
+      } catch {
+        return (await import(/* @vite-ignore */ moduleName)) as typeof import("mongodb");
+      }
+    })().catch((error) => {
+      mongoPromise = null;
+      throw error;
+    });
+  }
+  return mongoPromise;
 }
+
 
 /** Converte uma string em ObjectId sem importar o driver estaticamente. */
 export async function toObjectId(id: string): Promise<unknown> {
