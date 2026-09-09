@@ -20,21 +20,23 @@ function normalizeName(value: string): string {
 }
 
 /**
- * Detecta streams em qualidade 4K/UHD pelo nome do canal, grupo ou URL.
- * Esses streams pesam muito e são descartados na importação, mantendo
- * somente as qualidades mais baixas (Full HD / HD / SD).
+ * Detecta streams em qualidade 4K/UHD pelo nome do canal ou pela categoria.
+ * A URL não entra na conta: códigos aleatórios de link geravam falsos
+ * positivos e apagavam a lista inteira.
  */
-function is4kOrUhd(name: string, group: string, url: string): boolean {
-  const haystack = `${normalizeName(name)}|${normalizeName(group)}|${url.toUpperCase()}`;
-  return /4K|UHD|HEVC|2160P/.test(haystack);
+function is4kOrUhd(name: string, group: string): boolean {
+  const haystack = ` ${normalizeName(name)} | ${normalizeName(group)} `;
+  return /(^|[^A-Z0-9])(4K|UHD|HEVC|2160P)([^A-Z0-9]|$)/.test(haystack);
 }
 
 /**
  * Remove de uma lista já carregada os streams 4K/UHD
  * (usado também ao restaurar listas salvas localmente).
+ * Se o filtro esvaziasse a lista, devolvemos a lista original.
  */
 export function filterLowQuality(channels: Channel[]): Channel[] {
-  return channels.filter((ch) => !is4kOrUhd(ch.name, ch.group, ch.url));
+  const kept = channels.filter((ch) => !is4kOrUhd(ch.name, ch.group));
+  return kept.length > 0 ? kept : channels;
 }
 
 /** Extrai um atributo `chave="valor"` sem regex global (evita arrays enormes). */
