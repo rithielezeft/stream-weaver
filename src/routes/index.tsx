@@ -159,7 +159,25 @@ function Index() {
 
   const featured = filtered[0] ?? channels[0] ?? null;
 
+  /** Só assiste quem está em teste válido, com plano ativo ou é admin. */
+  const canWatch =
+    !!account &&
+    (account.unlimited || account.status === "trial" || account.status === "active");
+  const [blockedNotice, setBlockedNotice] = useState(false);
+
+  const startWatching = (channel: Channel) => {
+    if (!canWatch) {
+      setBlockedNotice(true);
+      return;
+    }
+    setCurrent(channel);
+  };
+
   const openItem = (item: CatalogItem) => {
+    if (!canWatch) {
+      setBlockedNotice(true);
+      return;
+    }
     if (item.kind === "series") setSeries(item.series);
     else setCurrent(item.channel);
   };
