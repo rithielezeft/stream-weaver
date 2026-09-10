@@ -346,11 +346,32 @@ function Index() {
             </p>
           )}
 
+          {account && !canWatch && (
+            <div className="mt-4 rounded-2xl border border-destructive/40 bg-destructive/10 px-5 py-4">
+              <p className="text-sm font-bold text-foreground">
+                {account.status === "blocked"
+                  ? "Sua conta está bloqueada"
+                  : "Seu acesso venceu"}
+              </p>
+              <p className="mt-1 text-xs text-slate-300">
+                Enquanto não renovar, a reprodução fica desligada. Ative um plano na página da sua
+                conta ou fale com a gente no WhatsApp.
+              </p>
+            </div>
+          )}
+
+          {restoring && (
+            <LoadingScreen
+              title="Recuperando sua lista"
+              hint="Estamos abrindo a lista salva neste aparelho. Listas grandes levam alguns segundos."
+            />
+          )}
+
           <section className="grid gap-6 pt-6 lg:grid-cols-3">
             {featured ? (
               <Hero
                 channel={featured}
-                onPlay={setCurrent}
+                onPlay={startWatching}
                 inList={myList.has(featured.id)}
                 onToggleList={toggleList}
               />
