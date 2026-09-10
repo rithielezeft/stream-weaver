@@ -116,6 +116,10 @@ function ContaPage() {
       if (res.ok) {
         setAccount(res.account);
         setListUrl(res.account.m3uUrl ?? "");
+        if (mode === "register") {
+          navigate({ to: "/" });
+          return;
+        }
       } else {
         setError(res.message);
       }
