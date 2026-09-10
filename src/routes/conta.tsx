@@ -100,6 +100,13 @@ function ContaPage() {
     event.preventDefault();
     setBusy(true);
     setError("");
+
+    if (mode === "register" && form.password.length < 6) {
+      setError("A senha precisa ter pelo menos 6 caracteres.");
+      setBusy(false);
+      return;
+    }
+
     try {
       const deviceId = getDeviceId();
       const res =
@@ -109,11 +116,12 @@ function ContaPage() {
       if (res.ok) {
         setAccount(res.account);
         setListUrl(res.account.m3uUrl ?? "");
+      } else {
+        setError(res.message);
       }
-
-      else setError(res.message);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível continuar.");
+      const zodMsg = getZodMessage(e);
+      setError(zodMsg ?? (e instanceof Error ? e.message : "Não foi possível continuar."));
     } finally {
       setBusy(false);
     }
