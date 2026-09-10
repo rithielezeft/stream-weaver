@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -46,6 +46,16 @@ interface Plan {
 const field =
   "w-full rounded-xl border border-white/10 bg-ink/60 px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-slate-500 focus:border-aurora-2/60";
 
+function getZodMessage(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const err = error as { issues?: { message?: string }[]; message?: string };
+  if (Array.isArray(err.issues) && err.issues.length > 0) {
+    return err.issues[0]?.message ?? null;
+  }
+  if (err.message) return err.message;
+  return null;
+}
+
 function ContaPage() {
   const register = useServerFn(registerAccount);
   const login = useServerFn(loginAccount);
@@ -64,7 +74,7 @@ function ContaPage() {
   const [listUrl, setListUrl] = useState("");
   const [savingList, setSavingList] = useState(false);
   const [listMsg, setListMsg] = useState("");
-
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     username: "",
@@ -90,6 +100,13 @@ function ContaPage() {
     event.preventDefault();
     setBusy(true);
     setError("");
+
+    if (mode === "register" && form.password.length < 6) {
+      setError("A senha precisa ter pelo menos 6 caracteres.");
+      setBusy(false);
+      return;
+    }
+
     try {
       const deviceId = getDeviceId();
       const res =
@@ -99,11 +116,16 @@ function ContaPage() {
       if (res.ok) {
         setAccount(res.account);
         setListUrl(res.account.m3uUrl ?? "");
+        if (mode === "register") {
+          navigate({ to: "/" });
+          return;
+        }
+      } else {
+        setError(res.message);
       }
-
-      else setError(res.message);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível continuar.");
+      const zodMsg = getZodMessage(e);
+      setError(zodMsg ?? (e instanceof Error ? e.message : "Não foi possível continuar."));
     } finally {
       setBusy(false);
     }
