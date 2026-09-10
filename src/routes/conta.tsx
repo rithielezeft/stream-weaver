@@ -48,9 +48,9 @@ const field =
 
 function getZodMessage(error: unknown): string | null {
   if (!error || typeof error !== "object") return null;
-  const err = error as { issues?: { message: string }[]; message?: string };
+  const err = error as { issues?: { message?: string }[]; message?: string };
   if (Array.isArray(err.issues) && err.issues.length > 0) {
-    return err.issues[0].message;
+    return err.issues[0]?.message ?? null;
   }
   if (err.message) return err.message;
   return null;
