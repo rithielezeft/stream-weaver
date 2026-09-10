@@ -135,29 +135,43 @@ function Index() {
     void clearPlaylist();
   };
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return channels;
-    return channels.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.group.toLowerCase().includes(q),
-    );
-  }, [channels, search]);
+  // A busca só é aplicada depois que o navegador tem folga, para não travar
+  // a digitação em listas com dezenas de milhares de itens.
+  const deferredSearch = useDeferredValue(search);
 
-  const catalog = useMemo(() => buildCatalog(filtered), [filtered]);
+  // O catálogo (séries agrupadas) é montado UMA vez por lista, não a cada letra.
+  const catalog = useMemo(() => buildCatalog(channels), [channels]);
   const allGroups = useMemo(() => sortGroups(groupCatalog(catalog)), [catalog]);
 
+  // Busca feita sobre o catálogo já pronto: só compara textos, é bem mais leve.
+  const searchedGroups = useMemo(() => {
+    const q = deferredSearch.trim().toLowerCase();
+    if (!q) return allGroups;
+    const out: [string, CatalogItem[]][] = [];
+    for (const [name, items] of allGroups) {
+      if (name.toLowerCase().includes(q)) {
+        out.push([name, items]);
+        continue;
+      }
+      const hits = items.filter((i) => i.name.toLowerCase().includes(q));
+      if (hits.length) out.push([name, hits]);
+    }
+    return out;
+  }, [allGroups, deferredSearch]);
+
   const groups = useMemo(() => {
-    if (activeCategory) return allGroups.filter(([name]) => name === activeCategory);
-    if (section === "inicio") return allGroups;
-    return allGroups
+    if (activeCategory) return searchedGroups.filter(([name]) => name === activeCategory);
+    if (section === "inicio") return searchedGroups;
+    return searchedGroups
       .map(([name, items]) => [name, items.filter((i) => matchesSection(section, i))] as [
         string,
         CatalogItem[],
       ])
       .filter(([, items]) => items.length > 0);
-  }, [allGroups, section, activeCategory]);
+  }, [searchedGroups, section, activeCategory]);
 
-  const featured = filtered[0] ?? channels[0] ?? null;
+  const featured = channels[0] ?? null;
+
 
   /** Só assiste quem está em teste válido, com plano ativo ou é admin. */
   const canWatch =
