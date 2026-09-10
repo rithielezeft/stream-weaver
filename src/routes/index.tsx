@@ -260,10 +260,14 @@ function Index() {
                 </a>
               )}
             </div>
-            {checkingAccount && (
-              <p className="mt-4 font-mono text-xs text-slate-500">Verificando sua conta…</p>
-            )}
           </section>
+
+          {checkingAccount && (
+            <LoadingScreen
+              title="Verificando sua conta"
+              hint="Estamos conferindo se você já tem acesso liberado. Aguarde alguns instantes."
+            />
+          )}
 
           <ShowcaseGrid posters={posters} whatsapp={whatsapp} />
         </main>
