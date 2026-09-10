@@ -73,7 +73,9 @@ export function ImportPanel({ onImport, totalChannels, totalCategories, saved, o
 
   const finish = (channels: Channel[], source: string) => {
     if (channels.length === 0) {
-      setError("Nenhum canal encontrado. Verifique o formato da lista (#EXTINF + URL).");
+      setError(
+        "Não encontramos canais nessa lista. Confira se o link/arquivo abre a lista completa (deve começar com #EXTM3U e ter linhas #EXTINF seguidas do endereço do canal). Se o link tiver usuário e senha, confirme se ainda estão válidos.",
+      );
       return;
     }
     onImport(channels, source);
