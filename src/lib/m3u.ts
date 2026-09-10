@@ -108,7 +108,7 @@ export function parseM3U(content: string): Channel[] {
       const name = pendingName || `Canal ${channels.length + 1}`;
       const group = pendingGroupTitle || pendingGroup || "Outros";
       // Descarta streams 4K/UHD: pesados demais; mantém só as qualidades mais baixas.
-      if (!is4kOrUhd(name, group, url)) {
+      if (!is4kOrUhd(name, group)) {
         channels.push({
           id,
           name,
@@ -125,7 +125,7 @@ export function parseM3U(content: string): Channel[] {
     } else {
       const name = `Canal ${channels.length + 1}`;
       const group = pendingGroup || "Outros";
-      if (!is4kOrUhd(name, group, url)) {
+      if (!is4kOrUhd(name, group)) {
         channels.push({
           id,
           name,
