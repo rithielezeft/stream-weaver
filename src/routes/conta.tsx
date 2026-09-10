@@ -46,6 +46,16 @@ interface Plan {
 const field =
   "w-full rounded-xl border border-white/10 bg-ink/60 px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-slate-500 focus:border-aurora-2/60";
 
+function getZodMessage(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const err = error as { issues?: { message: string }[]; message?: string };
+  if (Array.isArray(err.issues) && err.issues.length > 0) {
+    return err.issues[0].message;
+  }
+  if (err.message) return err.message;
+  return null;
+}
+
 function ContaPage() {
   const register = useServerFn(registerAccount);
   const login = useServerFn(loginAccount);
