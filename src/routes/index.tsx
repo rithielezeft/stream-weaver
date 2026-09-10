@@ -16,6 +16,7 @@ import { filterLowQuality } from "@/lib/m3u";
 import { claimPlaylist, getMyAccount, type AccountView } from "@/lib/account.functions";
 import { getSiteInfo, type ShowcasePoster } from "@/lib/showcase.functions";
 import { ShowcaseGrid } from "@/components/ShowcaseGrid";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export const Route = createFileRoute("/")({
   head: () => ({
