@@ -418,16 +418,52 @@ function Index() {
       )}
 
       {series && !current && (
-        <SeriesOverlay series={series} onPlay={setCurrent} onClose={() => setSeries(null)} />
+        <SeriesOverlay series={series} onPlay={startWatching} onClose={() => setSeries(null)} />
       )}
 
       {current && (
         <PlayerOverlay
           channel={current}
           upNext={upNext}
-          onPlay={setCurrent}
+          onPlay={startWatching}
           onClose={() => setCurrent(null)}
         />
+      )}
+
+      {blockedNotice && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/85 px-6 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-panel/80 p-7 text-center">
+            <p className="text-lg font-black text-foreground">Acesso vencido</p>
+            <p className="mt-2 text-sm text-slate-300">
+              Renove seu plano para voltar a assistir. Seus canais continuam salvos.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <Link
+                to="/conta"
+                className="rounded-full bg-gradient-to-r from-aurora-1 via-aurora-2 to-aurora-3 px-5 py-2.5 text-sm font-bold text-ink"
+              >
+                Renovar agora
+              </Link>
+              {whatsLink && (
+                <a
+                  href={whatsLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:bg-white/5"
+                >
+                  Falar no WhatsApp
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setBlockedNotice(false)}
+                className="px-5 py-2 text-xs text-slate-400 hover:text-slate-200"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
