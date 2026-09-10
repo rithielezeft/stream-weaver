@@ -16,6 +16,7 @@ import { filterLowQuality } from "@/lib/m3u";
 import { claimPlaylist, getMyAccount, type AccountView } from "@/lib/account.functions";
 import { getSiteInfo, type ShowcasePoster } from "@/lib/showcase.functions";
 import { ShowcaseGrid } from "@/components/ShowcaseGrid";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -158,7 +159,25 @@ function Index() {
 
   const featured = filtered[0] ?? channels[0] ?? null;
 
+  /** Só assiste quem está em teste válido, com plano ativo ou é admin. */
+  const canWatch =
+    !!account &&
+    (account.unlimited || account.status === "trial" || account.status === "active");
+  const [blockedNotice, setBlockedNotice] = useState(false);
+
+  const startWatching = (channel: Channel) => {
+    if (!canWatch) {
+      setBlockedNotice(true);
+      return;
+    }
+    setCurrent(channel);
+  };
+
   const openItem = (item: CatalogItem) => {
+    if (!canWatch) {
+      setBlockedNotice(true);
+      return;
+    }
     if (item.kind === "series") setSeries(item.series);
     else setCurrent(item.channel);
   };
@@ -241,10 +260,14 @@ function Index() {
                 </a>
               )}
             </div>
-            {checkingAccount && (
-              <p className="mt-4 font-mono text-xs text-slate-500">Verificando sua conta…</p>
-            )}
           </section>
+
+          {checkingAccount && (
+            <LoadingScreen
+              title="Verificando sua conta"
+              hint="Estamos conferindo se você já tem acesso liberado. Aguarde alguns instantes."
+            />
+          )}
 
           <ShowcaseGrid posters={posters} whatsapp={whatsapp} />
         </main>
@@ -323,11 +346,32 @@ function Index() {
             </p>
           )}
 
+          {account && !canWatch && (
+            <div className="mt-4 rounded-2xl border border-destructive/40 bg-destructive/10 px-5 py-4">
+              <p className="text-sm font-bold text-foreground">
+                {account.status === "blocked"
+                  ? "Sua conta está bloqueada"
+                  : "Seu acesso venceu"}
+              </p>
+              <p className="mt-1 text-xs text-slate-300">
+                Enquanto não renovar, a reprodução fica desligada. Ative um plano na página da sua
+                conta ou fale com a gente no WhatsApp.
+              </p>
+            </div>
+          )}
+
+          {restoring && (
+            <LoadingScreen
+              title="Recuperando sua lista"
+              hint="Estamos abrindo a lista salva neste aparelho. Listas grandes levam alguns segundos."
+            />
+          )}
+
           <section className="grid gap-6 pt-6 lg:grid-cols-3">
             {featured ? (
               <Hero
                 channel={featured}
-                onPlay={setCurrent}
+                onPlay={startWatching}
                 inList={myList.has(featured.id)}
                 onToggleList={toggleList}
               />
@@ -374,16 +418,52 @@ function Index() {
       )}
 
       {series && !current && (
-        <SeriesOverlay series={series} onPlay={setCurrent} onClose={() => setSeries(null)} />
+        <SeriesOverlay series={series} onPlay={startWatching} onClose={() => setSeries(null)} />
       )}
 
       {current && (
         <PlayerOverlay
           channel={current}
           upNext={upNext}
-          onPlay={setCurrent}
+          onPlay={startWatching}
           onClose={() => setCurrent(null)}
         />
+      )}
+
+      {blockedNotice && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/85 px-6 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-panel/80 p-7 text-center">
+            <p className="text-lg font-black text-foreground">Acesso vencido</p>
+            <p className="mt-2 text-sm text-slate-300">
+              Renove seu plano para voltar a assistir. Seus canais continuam salvos.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <Link
+                to="/conta"
+                className="rounded-full bg-gradient-to-r from-aurora-1 via-aurora-2 to-aurora-3 px-5 py-2.5 text-sm font-bold text-ink"
+              >
+                Renovar agora
+              </Link>
+              {whatsLink && (
+                <a
+                  href={whatsLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:bg-white/5"
+                >
+                  Falar no WhatsApp
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setBlockedNotice(false)}
+                className="px-5 py-2 text-xs text-slate-400 hover:text-slate-200"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
