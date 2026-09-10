@@ -74,7 +74,7 @@ function ContaPage() {
   const [listUrl, setListUrl] = useState("");
   const [savingList, setSavingList] = useState(false);
   const [listMsg, setListMsg] = useState("");
-
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     username: "",
