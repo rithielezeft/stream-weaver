@@ -25,11 +25,25 @@ export type AccountResult =
   | { ok: false; message: string };
 
 const registerSchema = z.object({
-  username: z.string().trim().min(3).max(32),
-  email: z.string().trim().email(),
-  whatsapp: z.string().trim().min(8).max(24),
-  password: z.string().min(6).max(200),
-  m3uUrl: z.string().trim().max(2000),
+  username: z
+    .string({ message: "Nome de usuário é obrigatório." })
+    .trim()
+    .min(3, { message: "Nome de usuário precisa ter pelo menos 3 caracteres." })
+    .max(32, { message: "Nome de usuário pode ter no máximo 32 caracteres." }),
+  email: z
+    .string({ message: "E-mail é obrigatório." })
+    .trim()
+    .email({ message: "Digite um e-mail válido." }),
+  whatsapp: z
+    .string({ message: "WhatsApp é obrigatório." })
+    .trim()
+    .min(8, { message: "WhatsApp parece incompleto." })
+    .max(24, { message: "WhatsApp pode ter no máximo 24 caracteres." }),
+  password: z
+    .string({ message: "Senha é obrigatória." })
+    .min(6, { message: "A senha precisa ter pelo menos 6 caracteres." })
+    .max(200, { message: "A senha pode ter no máximo 200 caracteres." }),
+  m3uUrl: z.string().trim().max(2000, { message: "Link da lista é muito longo." }),
   deviceId: z.string().trim().min(8).max(128),
 });
 
