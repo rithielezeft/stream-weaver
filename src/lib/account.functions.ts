@@ -109,8 +109,11 @@ export const registerAccount = createServerFn({ method: "POST" })
   });
 
 const loginSchema = z.object({
-  email: z.string().trim().min(3),
-  password: z.string().min(1),
+  email: z
+    .string({ message: "E-mail ou usuário é obrigatório." })
+    .trim()
+    .min(3, { message: "E-mail ou usuário é obrigatório." }),
+  password: z.string({ message: "Senha é obrigatória." }).min(1, { message: "Digite sua senha." }),
   deviceId: z.string().trim().max(128).optional(),
 });
 
