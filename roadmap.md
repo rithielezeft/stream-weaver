@@ -25,3 +25,4 @@
 
 - [x] Deploy próprio: build Node (NITRO_PRESET=node-server), porta 8045, nginx + systemd + HTTPS (velatv.zeferius.com) — ver DEPLOY.md
 - [x] Player: tela cheia completa do PC (botão alterna entra/sai, duplo clique no vídeo e tecla F)
+- [ ] Redirecionar usuário para a página inicial após cadastro, já logado, para carregar a lista
