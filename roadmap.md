@@ -27,3 +27,4 @@
 - [x] Player: tela cheia completa do PC (botão alterna entra/sai, duplo clique no vídeo e tecla F)
 - [x] Redirecionar usuário para a página inicial após cadastro, já logado, para carregar a lista
 - [x] Desempenho em aparelhos com pouca memória: processamento M3U em segundo plano, catálogo calculado uma vez e busca adiada
+- [x] Capas com indicador de carregamento, cache local do navegador, renderização sob demanda e cursor nos itens clicáveis

@@ -5,7 +5,41 @@ import type { ShowcasePoster } from "@/lib/showcase.functions";
 
 /** Capas vindas de servidores HTTP passam pelo nosso endereço seguro. */
 export function posterSrc(logo: string) {
-  return /^https:\/\//i.test(logo) ? logo : `/api/public/poster?url=${encodeURIComponent(logo)}`;
+  return `/api/public/poster?url=${encodeURIComponent(logo)}`;
+}
+
+function ShowcaseImage({ poster }: { poster: ShowcasePoster }) {
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  return (
+    <>
+      {!loaded && !failed && (
+        <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-panel to-surface">
+          <span className="flex flex-col items-center gap-2 text-[10px] text-slate-400">
+            <span className="size-5 animate-spin rounded-full border-2 border-white/10 border-t-aurora-2" />
+            Carregando capa
+          </span>
+        </div>
+      )}
+      {failed ? (
+        <div className="grid size-full place-items-center bg-gradient-to-br from-panel to-surface text-3xl font-black text-aurora-2/60">
+          {poster.name.slice(0, 1).toUpperCase()}
+        </div>
+      ) : (
+        <img
+          src={posterSrc(poster.logo)}
+          alt={poster.name}
+          loading="lazy"
+          decoding="async"
+          width={320}
+          height={480}
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+          className={`size-full object-cover transition-opacity group-hover:opacity-100 ${loaded ? "opacity-85" : "opacity-0"}`}
+        />
+      )}
+    </>
+  );
 }
 
 interface Props {
@@ -54,16 +88,11 @@ export function ShowcaseGrid({ posters, whatsapp }: Props) {
             type="button"
             key={`${poster.logo}-${index}`}
             onClick={() => setSelected(poster)}
-            className="group relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-ink/60 text-left transition-transform hover:-translate-y-1 hover:border-aurora-2/50"
-            title={poster.name}
+            className="group relative aspect-[2/3] cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-ink/60 text-left transition-transform hover:-translate-y-1 hover:border-aurora-2/50"
+            title={`Ver opções para ${poster.name}`}
+            aria-label={`Ver opções para ${poster.name}`}
           >
-            <img
-              src={posterSrc(poster.logo)}
-              alt={poster.name}
-              loading="lazy"
-              decoding="async"
-              className="size-full object-cover opacity-85 transition-opacity group-hover:opacity-100"
-            />
+            <ShowcaseImage poster={poster} />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink to-transparent p-2">
               <p className="truncate text-[11px] font-semibold text-slate-200">{poster.name}</p>
               <p className="truncate font-mono text-[9px] uppercase text-slate-500">
@@ -79,6 +108,7 @@ export function ShowcaseGrid({ posters, whatsapp }: Props) {
           <button
             type="button"
             onClick={() => setVisible((v) => v + PAGE)}
+            title="Carregar mais títulos"
             className="rounded-full border border-white/15 px-6 py-2.5 text-xs font-semibold text-slate-100 hover:bg-white/5"
           >
             Ver mais títulos
