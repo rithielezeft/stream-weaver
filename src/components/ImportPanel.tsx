@@ -2,13 +2,14 @@ import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Loader2, Upload, Link2, ClipboardType, FileUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { parseM3U, type Channel } from "@/lib/m3u";
+import type { Channel } from "@/lib/m3u";
+import { parseM3UInBackground } from "@/lib/m3u-parser";
 import { downloadM3U } from "@/lib/m3u-import.functions";
 
 type Mode = "url" | "text" | "file";
 
 interface ImportPanelProps {
-  onImport: (channels: Channel[], source: string) => void;
+  onImport: (channels: Channel[], source: string) => void | Promise<void>;
   totalChannels: number;
   totalCategories: number;
   saved?: { source: string; savedAt: number } | null;
@@ -54,31 +55,14 @@ export function ImportPanel({ onImport, totalChannels, totalCategories, saved, o
     }, 200);
   };
 
-  // Leitura real do arquivo com porcentagem de verdade.
-  const readFileWithProgress = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onprogress = (event) => {
-        if (event.lengthComputable) {
-          setProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
-        }
-      };
-      reader.onload = () => {
-        setProgress(100);
-        resolve(String(reader.result ?? ""));
-      };
-      reader.onerror = () => reject(new Error("erro ao ler o arquivo"));
-      reader.readAsText(file);
-    });
-
-  const finish = (channels: Channel[], source: string) => {
+  const finish = async (channels: Channel[], source: string) => {
     if (channels.length === 0) {
       setError(
         "Não encontramos canais nessa lista. Confira se o link/arquivo abre a lista completa (deve começar com #EXTM3U e ter linhas #EXTINF seguidas do endereço do canal). Se o link tiver usuário e senha, confirme se ainda estão válidos.",
       );
       return;
     }
-    onImport(channels, source);
+    await onImport(channels, source);
     setValue("");
     setError(null);
     setSuccess(`${channels.length.toLocaleString("pt-BR")} canais carregados de ${source}.`);
@@ -99,7 +83,10 @@ export function ImportPanel({ onImport, totalChannels, totalCategories, saved, o
         startSimulatedProgress();
         const result = await fetchPlaylist({ data: { url } });
         setProgress(100);
-        finish(parseM3U(result.text), new URL(result.sourceUrl).hostname);
+        setProgress(96);
+        const channels = await parseM3UInBackground({ content: result.text });
+        setProgress(100);
+        await finish(channels, new URL(result.sourceUrl).hostname);
       } else if (mode === "file") {
         if (!selectedFile) {
           setError("Selecione um arquivo .m3u ou .m3u8 antes de importar.");
@@ -109,14 +96,19 @@ export function ImportPanel({ onImport, totalChannels, totalCategories, saved, o
           setError(`O arquivo excede o limite de ${LIMIT_LABEL}.`);
           return;
         }
-        const content = await readFileWithProgress(selectedFile);
-        finish(parseM3U(content), selectedFile.name);
+        setProgress(10);
+        const channels = await parseM3UInBackground({ file: selectedFile });
+        setProgress(100);
+        await finish(channels, selectedFile.name);
       } else {
         if (!value.trim()) {
           setError("Cole o conteúdo da lista antes de importar.");
           return;
         }
-        finish(parseM3U(value), "texto colado");
+        setProgress(10);
+        const channels = await parseM3UInBackground({ content: value });
+        setProgress(100);
+        await finish(channels, "texto colado");
       }
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "";
@@ -254,7 +246,7 @@ export function ImportPanel({ onImport, totalChannels, totalCategories, saved, o
         {loading && <Loader2 className="size-4 animate-spin" />}
         {loading
           ? progress !== null
-            ? `${mode === "url" ? "Baixando" : "Lendo"}… ${Math.round(progress)}%`
+            ? `${progress >= 95 ? "Organizando catálogo" : mode === "url" ? "Baixando" : "Lendo"}… ${Math.round(progress)}%`
             : mode === "url"
               ? "Baixando e lendo…"
               : "Lendo arquivo…"
