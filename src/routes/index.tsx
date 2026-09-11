@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppHeader } from "@/components/AppHeader";
 import { Hero } from "@/components/Hero";
@@ -198,7 +198,7 @@ function Index() {
 
   // Mostra as primeiras categorias na hora e revela o resto em segundo plano.
   const [rowsVisible, setRowsVisible] = useState(4);
-  useEffect(() => setRowsVisible(4), [filtered, section, activeCategory]);
+  useEffect(() => setRowsVisible(4), [deferredSearch, section, activeCategory]);
   useEffect(() => {
     if (rowsVisible >= groups.length) return;
     const id = setTimeout(() => setRowsVisible((v) => v + 4), 300);
