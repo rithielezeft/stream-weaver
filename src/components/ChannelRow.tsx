@@ -51,6 +51,43 @@ function describe(item: CatalogItem): string {
   return item.channel.live ? "Ao vivo" : (item.channel.meta ?? item.group);
 }
 
+function PosterImage({ src, name }: { src: string; name: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="grid size-full place-items-center bg-gradient-to-br from-panel to-surface">
+        <span className="text-4xl font-black text-aurora-2/60">{name.slice(0, 1).toUpperCase()}</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {!loaded && (
+        <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-panel to-surface">
+          <span className="flex flex-col items-center gap-2 text-[10px] text-slate-400">
+            <span className="size-5 animate-spin rounded-full border-2 border-white/10 border-t-aurora-2" />
+            Aguarde
+          </span>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={`Capa de ${name}`}
+        loading="lazy"
+        decoding="async"
+        width={512}
+        height={768}
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+        className={`h-full w-full object-cover transition-[opacity,transform] duration-500 group-hover:scale-105 ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
+    </>
+  );
+}
+
 const Card = memo(function Card({
   item,
   onOpen,
@@ -68,19 +105,13 @@ const Card = memo(function Card({
     <button
       ref={ref}
       onClick={() => onOpen(item)}
-      className={`group relative overflow-hidden rounded-2xl text-left ring-1 ring-white/10 transition-all duration-300 hover:z-20 ${wide ? "w-full" : "w-[180px] shrink-0"} ${glow}`}
+      aria-label={item.kind === "series" ? `Ver temporadas de ${item.name}` : `Assistir ${item.name}`}
+      title={item.kind === "series" ? `Ver temporadas de ${item.name}` : `Assistir ${item.name}`}
+      className={`group relative cursor-pointer overflow-hidden rounded-2xl text-left ring-1 ring-white/10 transition-all duration-300 hover:z-20 ${wide ? "w-full" : "w-[180px] shrink-0"} ${glow}`}
     >
       <div className="aspect-[2/3] w-full overflow-hidden bg-surface">
         {src && near ? (
-          <img
-            src={src}
-            alt={`Capa de ${item.name}`}
-            loading="lazy"
-            decoding="async"
-            width={512}
-            height={768}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          <PosterImage src={src} name={item.name} />
         ) : (
           <div className="grid h-full w-full place-items-center bg-gradient-to-br from-panel to-surface transition-transform duration-500 group-hover:scale-105">
             <span className="text-4xl font-black text-aurora-2/60">
@@ -163,7 +194,7 @@ export function ChannelRow({ title, items, onOpen }: ChannelRowProps) {
   const remaining = items.length - shown.length;
 
   return (
-    <div id={`cat-${title}`} className="scroll-mt-24">
+    <div id={`cat-${title}`} className="catalog-row scroll-mt-24">
       <div className="mb-3 flex items-end justify-between gap-4">
         <h2 className="text-2xl font-bold tracking-tight text-foreground">{title}</h2>
         <div className="flex items-center gap-3">
@@ -175,6 +206,7 @@ export function ChannelRow({ title, items, onOpen }: ChannelRowProps) {
               setExpanded((v) => !v);
               setGridVisible(GRID_PAGE);
             }}
+            title={expanded ? `Recolher ${title}` : `Ver todos em ${title}`}
             className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-aurora-2 transition-colors hover:bg-white/10"
           >
             {expanded ? "Ver menos" : "Ver todos"}
@@ -194,6 +226,7 @@ export function ChannelRow({ title, items, onOpen }: ChannelRowProps) {
             <div className="flex justify-center">
               <button
                 onClick={() => setGridVisible((v) => v + GRID_PAGE)}
+                title={`Carregar mais itens de ${title}`}
                 className="flex items-center gap-2 rounded-full border border-white/10 bg-panel/60 px-5 py-2 text-xs font-bold text-aurora-2 transition-colors hover:bg-panel"
               >
                 <ChevronDown className="size-4" />
@@ -210,6 +243,7 @@ export function ChannelRow({ title, items, onOpen }: ChannelRowProps) {
           {remaining > 0 && (
             <button
               onClick={() => setVisible((v) => v + PAGE_SIZE * 5)}
+              title={`Mostrar mais itens de ${title}`}
               className="grid w-[120px] shrink-0 place-items-center rounded-2xl bg-panel/60 text-center ring-1 ring-white/10 transition-colors hover:bg-panel hover:ring-aurora-2/50"
             >
               <span className="px-3 text-xs font-bold text-aurora-2">

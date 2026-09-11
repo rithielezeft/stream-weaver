@@ -51,7 +51,7 @@ export const Route = createFileRoute("/api/public/poster")({
             status: 200,
             headers: {
               "content-type": upstream.headers.get("content-type") ?? "image/jpeg",
-              "cache-control": "public, max-age=86400",
+              "cache-control": "public, max-age=604800, stale-while-revalidate=2592000",
             },
           });
         } catch {

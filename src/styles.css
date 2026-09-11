@@ -146,6 +146,19 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
+
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@utility catalog-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 340px;
 }
 
 @utility scrollbar-none {
