@@ -11,6 +11,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const USER_AGENT = "Vela.tv StreamProxy/1.0";
 const MAX_MANIFEST_BYTES = 8 * 1024 * 1024;
+const UPSTREAM_TIMEOUT_MS = 30_000;
 
 function isPrivateHostname(hostname: string) {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
@@ -85,18 +86,48 @@ export const Route = createFileRoute("/api/public/stream-proxy")({
         try {
           upstream = await fetch(target.href, {
             redirect: "follow",
+            signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
             headers: {
               "User-Agent": USER_AGENT,
               Accept: "*/*",
               ...(range ? { Range: range } : {}),
             },
           });
-        } catch {
-          return new Response("Upstream unreachable", { status: 502 });
+        } catch (error) {
+          const timedOut = error instanceof Error && error.name === "TimeoutError";
+          return new Response(
+            timedOut
+              ? "O servidor do conteúdo demorou demais para responder."
+              : "Não foi possível conectar ao servidor do conteúdo.",
+            {
+              status: timedOut ? 504 : 502,
+              headers: { "cache-control": "no-store" },
+            },
+          );
         }
 
         if (!upstream.ok) {
-          return new Response(`Upstream error ${upstream.status}`, { status: 502 });
+          // Um link removido/expirado não é uma falha do aplicativo. Preservar
+          // o status real evita que 404/403 do provedor virem um falso erro 502
+          // e derrubem a página pelo coletor de erros da hospedagem.
+          const status = upstream.status >= 400 && upstream.status < 500
+            ? upstream.status
+            : 502;
+          void upstream.body?.cancel().catch(() => {});
+          return new Response(
+            upstream.status === 404
+              ? "Este conteúdo não está mais disponível no servidor da lista."
+              : upstream.status === 403
+                ? "O servidor da lista recusou o acesso a este conteúdo."
+                : `O servidor do conteúdo respondeu com erro ${upstream.status}.`,
+            {
+              status,
+              headers: {
+                "cache-control": "no-store",
+                "x-vela-upstream-status": String(upstream.status),
+              },
+            },
+          );
         }
 
         const contentType = upstream.headers.get("content-type") ?? "";
