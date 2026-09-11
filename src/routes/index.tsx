@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppHeader } from "@/components/AppHeader";
 import { Hero } from "@/components/Hero";
@@ -135,9 +135,12 @@ function Index() {
     void clearPlaylist();
   };
 
-  // A busca só é aplicada depois que o navegador tem folga, para não travar
-  // a digitação em listas com dezenas de milhares de itens.
-  const deferredSearch = useDeferredValue(search);
+  // Aguarda uma pequena pausa na digitação antes de pesquisar listas grandes.
+  const [deferredSearch, setDeferredSearch] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDeferredSearch(search), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   // O catálogo (séries agrupadas) é montado UMA vez por lista, não a cada letra.
   const catalog = useMemo(() => buildCatalog(channels), [channels]);
